@@ -1,0 +1,13 @@
+<h1>{{ assignment.title }}</h1>
+<p>{{ assignment.description }}</p>
+<h2>Submit Assignment</h2>
+{% if submissions %}
+    <p>Your Submission: <a href="{{ submissions.file.url }}">Download</a></p>
+    <p>Grade: {{ submissions.grade }}</p>
+{% else %}
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Upload</button>
+    </form>
+{% endif %}

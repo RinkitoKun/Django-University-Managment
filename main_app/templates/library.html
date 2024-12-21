@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library</title>
+</head>
+<body>
+    <h1>Library</h1>
+    <h2>Welcome, {{ student.name }}</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Book Name</th>
+                <th>Category</th>
+                <th>Quantity</th>
+                <th>Status</th>
+                <th>Borrower</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books %}
+            <tr>
+                <td>{{ book.book_name }}</td>
+                <td>{{ book.category }}</td>
+                <td>{{ book.quantity }}</td>
+                <td>{{ book.status }}</td>
+                <td>{{ book.borrower.name if book.borrower else 'None' }}</td>
+                <td>
+                    {% if book.status == "Present" %}
+                    <form method="post" action="{% url 'borrow_book' student_id=student.id book_id=book.id %}">
+                        {% csrf_token %}
+                        <button type="submit">Borrow</button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{% url 'return_book' student_id=student.id book_id=book.id %}">
+                        {% csrf_token %}
+                        <button type="submit">Return</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

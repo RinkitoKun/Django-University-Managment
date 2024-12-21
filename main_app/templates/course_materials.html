@@ -1,0 +1,6 @@
+<h1>{{ course.name }} Materials</h1>
+<ul>
+    {% for material in materials %}
+    <li><a href="{{ material.file.url }}">{{ material.title }}</a></li>
+    {% endfor %}
+</ul>

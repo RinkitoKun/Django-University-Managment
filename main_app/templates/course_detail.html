@@ -1,0 +1,7 @@
+<h1>{{ course.name }}</h1>
+<ul>
+    <li><a href="{% url 'course_materials' student_id=student.id course_id=course.id %}">Course Materials</a></li>
+    <li><a href="{% url 'course_schedule' student_id=student.id course_id=course.id %}">Course Schedule</a></li>
+    <li><a href="{% url 'assignment_detail' student_id=student.id course_id=course.id assignment_id=assignment.id %}">
+        Assignments</a></li>
+</ul>

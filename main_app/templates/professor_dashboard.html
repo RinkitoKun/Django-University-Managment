@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professor Dashboard</title>
+</head>
+<body>
+    <h1>Welcome, {{ professor.name }}</h1>
+    <h2>Your Profile:</h2>
+    <p>Email: {{ professor.email }}</p>
+    <p>Phone Number: {{ professor.phone_number }}</p>
+    <p>Gender: {{ professor.gender }}</p>
+    <p>Specialization: {{ professor.specialization }}</p>
+    <p>Department: {{ professor.department.name }}</p>
+    <h2>Assigned Course:</h2>
+    <p>{{ professor.course.name }}</p>
+</body>
+</html>
