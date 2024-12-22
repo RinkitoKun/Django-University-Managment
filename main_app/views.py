@@ -15,7 +15,7 @@ def login_view(request):
         student = Student.objects.filter(email=email).first()
         if student and student.password == password:
             # Redirect to Student Dashboard
-            return redirect('student_dashboard', student_id=student.id)
+            return redirect('student_dashboard', student_id=student.student_id)
         
         # Check if the user is a Professor
         professor = Professor.objects.filter(email=email).first()
@@ -80,8 +80,8 @@ def return_book(request, student_id, book_id):
 
 grading_queue = GradingQueue()
 
-def student_dashboard(request, student_id):
-    student = get_object_or_404(Student, id=student_id)
+def student_dashboard(request,student_id):
+    student = get_object_or_404(Student, pk=student_id)
     courses = student.enrolled_courses.all()
     attendance = student.attendances.all()
     schedules = Schedule.objects.filter(course__in=courses)
@@ -93,10 +93,11 @@ def student_dashboard(request, student_id):
         'schedules': schedules
     })
 
-def course_detail(request, student_id, course_id):
-    student = get_object_or_404(Student, id=student_id)
-    course = get_object_or_404(Course, id=course_id)
-    return render(request, 'course_detail.html', {'student': student, 'course': course})
+def course_detail(request, student_id, course_id, assignment_id):
+    student = get_object_or_404(Student, pk=student_id)
+    course = get_object_or_404(Course, pk=course_id)
+    assignment=get_object_or_404(Assignment,pk=assignment_id)
+    return render(request, 'course_detail.html', {'student': student, 'course': course, 'assignment': assignment})
 
 
 def course_materials(request, student_id, course_id):
@@ -116,8 +117,8 @@ def course_schedule(request, student_id, course_id):
 
 
 def assignment_detail(request, student_id, course_id, assignment_id):
-    student = get_object_or_404(Student, id=student_id)
-    assignment = get_object_or_404(Assignment, id=assignment_id)
+    student = get_object_or_404(Student, pk=student_id)
+    assignment = get_object_or_404(Assignment, pk=assignment_id)
     submissions = AssignmentSubmission.objects.filter(assignment=assignment, student=student).first()
     
     if request.method == "POST":

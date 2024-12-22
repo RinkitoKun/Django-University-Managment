@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard</title>
 </head>
+
 <body>
     <h1>Welcome, {{ student.name }}</h1>
     <h2>Your Profile:</h2>
@@ -18,12 +20,12 @@
         <li>{{ course.name }}</li>
         {% endfor %}
     </ul>
-    <h2><a href="{% url 'library' student_id=student.id %}">Go to Library</a></h2>
+    <h2><a href="{% url 'library' student_id=student.student_id %}">Go to Library</a></h2>
 
     <h2>Courses</h2>
     <ul>
         {% for course in courses %}
-        <li><a href="{% url 'course_detail' student_id=student.id course_id=course.id %}">{{ course.name }}</a></li>
+        <li><a href="{% url 'course_detail' student_id=student.student_id course_id=course.course_id %}">{{ course.name }}</a></li>
         {% endfor %}
     </ul>
     <h2>Attendance</h2>
@@ -39,4 +41,5 @@
         {% endfor %}
     </ul>
 </body>
+
 </html>
