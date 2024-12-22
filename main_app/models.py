@@ -51,6 +51,9 @@ class Student(Person):
     def view_attendance(self):
         return Attendance.objects.filter(student=self)
 
+    def get_borrowed_books(self):
+        return Library.objects.filter(booklending__student=self, booklending__return_date__isnull=True)
+
 
 class Professor(Person):
     professor_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
@@ -90,23 +93,87 @@ class BookFactory:
     def create_book(book_name, category, quantity):
         return Library(book_name=book_name, category=category, quantity=quantity, status="Present")
 
+class BookLending(models.Model):
+    book = models.ForeignKey('Library', on_delete=models.CASCADE)
+    student = models.ForeignKey('Student', on_delete=models.CASCADE)
+    borrow_date = models.DateTimeField(auto_now_add=True)
+    return_date = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        unique_together = ['book', 'student', 'borrow_date']
+
+
 class Library(models.Model):
+    STATUS_CHOICES = [
+        ('AVAILABLE', 'Available'),
+        ('BORROWED', 'Borrowed'),
+    ]
+    
+    book_id = models.CharField(max_length=20, primary_key=True, unique=True, editable=False)
     book_name = models.CharField(max_length=255)
+    book_description = models.TextField(null=True)
     category = models.CharField(max_length=100)
     quantity = models.PositiveIntegerField()
-    status = models.CharField(max_length=10, choices=[('Borrowed', 'Borrowed'), ('Present', 'Present')])
-    borrower = models.ForeignKey('Student', null=True, blank=True, on_delete=models.SET_NULL, related_name="borrowed_books")
+    book_cover = models.ImageField(upload_to='book_covers/', blank=True, null=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='AVAILABLE')
+    borrowers = models.ManyToManyField(
+        'Student',
+        through=BookLending,
+        related_name='borrowed_books'
+    )
 
-class BorrowRequestQueue:
+    def __str__(self):
+        return self.book_name
+
+    def borrow_book(self, student):
+        if self.quantity > 0:
+            BookLending.objects.create(book=self, student=student)
+            self.quantity -= 1
+            if self.quantity == 0:
+                self.status = 'BORROWED'
+            self.save()
+            return True
+        return False
+
+    def return_book(self, student):
+        lending = BookLending.objects.filter(
+            book=self,
+            student=student,
+            return_date__isnull=True
+        ).first()
+        if lending:
+            lending.return_date = timezone.now()
+            lending.save()
+            self.quantity += 1
+            self.status = 'AVAILABLE'
+            self.save()
+            return True
+        return False
+
+# Factory Design Pattern
+class BookFactory:
+    @staticmethod
+    def create_book(book_name, book_description, category, quantity, book_cover=None):
+        return Library.objects.create(
+            book_name=book_name,
+            book_description=book_description,
+            category=category,
+            quantity=quantity,
+            book_cover=book_cover
+        )
+
+# Queue for managing borrow requests
+class BorrowQueue:
     def __init__(self):
         self.queue = []
 
-    def enqueue(self, book, student):
-        self.queue.append((book, student))
+    def enqueue(self, book, user):
+        self.queue.append((book, user))
 
-    def dequeue(self):
-        return self.queue.pop(0) if self.queue else None
-
+    def process_next(self):
+        if self.queue:
+            book, user = self.queue.pop(0)
+            book.borrow_book(user)
 class CourseMaterial(models.Model):
     material_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     title = models.CharField(max_length=255)

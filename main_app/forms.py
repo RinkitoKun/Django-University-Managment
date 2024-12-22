@@ -1,5 +1,5 @@
 from django import forms
-from .models import AssignmentSubmission
+from .models import AssignmentSubmission, Library
 
 
 class LoginForm(forms.Form):
@@ -10,3 +10,8 @@ class AssignmentSubmissionForm(forms.ModelForm):
     class Meta:
         model = AssignmentSubmission
         fields = ['file']
+
+class BookUploadForm(forms.ModelForm):
+    class Meta:
+        model = Library
+        fields = ['book_name', 'book_description', 'category', 'quantity', 'book_cover']

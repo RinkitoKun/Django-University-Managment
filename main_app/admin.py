@@ -11,6 +11,7 @@ from .models import (
     Assignment,
     Attendance,
     Enrollment,
+    BookLending
 )
 
 class EnrollmentInline(admin.TabularInline):
@@ -48,11 +49,16 @@ class StaffAdmin(admin.ModelAdmin):
 
 @admin.register(Library)
 class LibraryAdmin(admin.ModelAdmin):
-    list_display = ('book_name', 'category', 'quantity', 'status')
-    search_fields = ('book_name', 'category')
-    list_filter = ('status',)
-    exclude = ('book_id',)
+    list_display = ('book_id', 'book_name', 'category', 'quantity', 'status')
+    search_fields = ('book_name', 'category', 'book_id')
+    list_filter = ('status', 'category')
+    readonly_fields = ('book_id',)
 
+@admin.register(BookLending)
+class BookLendingAdmin(admin.ModelAdmin):
+    list_display = ('book', 'student', 'borrow_date', 'return_date')
+    list_filter = ('borrow_date', 'return_date')
+    search_fields = ('book__book_name', 'student__name')
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):

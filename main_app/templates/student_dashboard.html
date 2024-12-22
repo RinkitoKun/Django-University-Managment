@@ -5,41 +5,92 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+    </style>
 </head>
 
 <body>
     <h1>Welcome, {{ student.name }}</h1>
-    <h2>Your Profile:</h2>
-    <p>Email: {{ student.email }}</p>
-    <p>Phone Number: {{ student.phone_number }}</p>
-    <p>Gender: {{ student.gender }}</p>
-    <p>Address: {{ student.address }}</p>
-    <h2>Enrolled Courses:</h2>
-    <ul>
-        {% for course in courses %}
-        <li>{{ course.name }}</li>
-        {% endfor %}
-    </ul>
-    <h2><a href="{% url 'library' student_id=student.student_id %}">Go to Library</a></h2>
+    
+    <div class="section">
+        <h2>Your Profile</h2>
+        <p><strong>Email:</strong> {{ student.email }}</p>
+        <p><strong>Phone Number:</strong> {{ student.phone_number }}</p>
+        <p><strong>Gender:</strong> {{ student.gender }}</p>
+        <p><strong>Address:</strong> {{ student.address }}</p>
+    </div>
 
-    <h2>Courses</h2>
-    <ul>
-        {% for course in courses %}
-        <li><a href="{% url 'course_detail' student_id=student.student_id course_id=course.course_id %}">{{ course.name }}</a></li>
-        {% endfor %}
-    </ul>
-    <h2>Attendance</h2>
-    <ul>
-        {% for att in attendance %}
-        <li>{{ att.course.name }}: {{ att.attendance_percent }}%</li>
-        {% endfor %}
-    </ul>
-    <h2>Upcoming Schedules</h2>
-    <ul>
-        {% for schedule in schedules %}
-        <li>{{ schedule.course.name }}: {{ schedule.date }} at {{ schedule.time }}</li>
-        {% endfor %}
-    </ul>
+    <div class="section">
+        <h2>Library</h2>
+        <a href="{% url 'library' student_id=student.student_id %}">Go to Library</a>
+    </div>
+
+    <div class="section">
+        <h2>Enrolled Courses</h2>
+        <ul>
+            {% for course in courses %}
+            <li>
+                <a href="{% url 'course_detail' student_id=student.student_id course_id=course.course_id %}">
+                    {{ course.name }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Attendance</h2>
+        <ul>
+            {% for att in attendance %}
+            <li>{{ att.course.name }}: {{ att.attendance_percent }}%</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Upcoming Schedules</h2>
+        <ul>
+            {% for schedule in schedules %}
+            <li>{{ schedule.course.name }}: {{ schedule.date }} at {{ schedule.time }}</li>
+            {% endfor %}
+        </ul>
+    </div>
 </body>
 
 </html>

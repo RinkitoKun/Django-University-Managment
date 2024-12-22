@@ -1,48 +1,141 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Library</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        .book-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .book-cover {
+            width: 100px;
+            height: 150px;
+            object-fit: cover;
+            margin-right: 15px;
+            border-radius: 5px;
+        }
+
+        .book-details {
+            flex: 1;
+        }
+
+        .book-details h3 {
+            margin: 5px 0;
+        }
+
+        .book-details p {
+            margin: 2px 0;
+        }
+
+        .action-buttons {
+            text-align: right;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .back-link {
+            margin: 10px 0;
+            display: inline-block;
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
+
 <body>
     <h1>Library</h1>
-    <h2>Welcome, {{ student.name }}</h2>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Book Name</th>
-                <th>Category</th>
-                <th>Quantity</th>
-                <th>Status</th>
-                <th>Borrower</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for book in books %}
-            <tr>
-                <td>{{ book.book_name }}</td>
-                <td>{{ book.category }}</td>
-                <td>{{ book.quantity }}</td>
-                <td>{{ book.status }}</td>
-                <td>{{ book.borrower.name if book.borrower else 'None' }}</td>
-                <td>
-                    {% if book.status == "Present" %}
-                    <form method="post" action="{% url 'borrow_book' student_id=student.id book_id=book.id %}">
+    <p>Welcome, {{ student.name }}</p>
+    <a href="{% url 'student_dashboard' student_id=student.student_id %}" class="back-link">Back to Dashboard</a>
+
+    <h2>Available Books</h2>
+    <div>
+        {% for book in books %}
+            <div class="book-card">
+                {% if book.book_cover %}
+                    <img src="{{ book.book_cover.url }}" alt="{{ book.book_name }}" class="book-cover">
+                {% else %}
+                    <img src="{% static 'images/default_cover.jpg' %}" alt="Default Cover" class="book-cover">
+                {% endif %}
+                <div class="book-details">
+                    <h3>{{ book.book_name }}</h3>
+                    <p><strong>Category:</strong> {{ book.category }}</p>
+                    <p><strong>Description:</strong> {{ book.book_description }}</p>
+                    <p><strong>Quantity:</strong> {{ book.quantity }}</p>
+                </div>
+                <div class="action-buttons">
+                    {% if book.quantity > 0 %}
+                    <form method="POST" action="{% url 'borrow_book' student_id=student.student_id book_id=book.book_id %}">
                         {% csrf_token %}
                         <button type="submit">Borrow</button>
                     </form>
                     {% else %}
-                    <form method="post" action="{% url 'return_book' student_id=student.id book_id=book.id %}">
-                        {% csrf_token %}
-                        <button type="submit">Return</button>
-                    </form>
+                    <button disabled>Out of Stock</button>
                     {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                </div>
+            </div>
+        
+        {% empty %}
+        <p>No books available at the moment.</p>
+        {% endfor %}
+
+        <h2>Borrowed Books</h2>
+    <div>
+        {% for lending in student.booklending_set.all %}
+            {% if not lending.return_date %}
+            <div class="book-card">
+                <div class="book-details">
+                    <h3>{{ lending.book.book_name }}</h3>
+                    <p><strong>Category:</strong> {{ lending.book.category }}</p>
+                    <p><strong>Description:</strong> {{ lending.book.book_description }}</p>
+                    <p><strong>Borrowed Date:</strong> {{ lending.borrow_date|date:"F d, Y" }}</p>
+                </div>
+                <div class="action-buttons">
+                    <form method="POST" action="{% url 'return_book' student_id=student.student_id book_id=lending.book.book_id %}">
+                        {% csrf_token %}
+                        <button type="submit">Return Book</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        {% empty %}
+            <p>No books currently borrowed.</p>
+        {% endfor %}
+    </div>
 </body>
+
 </html>
