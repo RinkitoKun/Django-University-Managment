@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Material - {{ material.title }}{% endblock %}
+
+{% block navigation %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'professor_dashboard' professor.professor_id %}">Dashboard</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'professor_course_detail' professor.professor_id course.course_id %}">Course Details</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'course_materials_manage' professor.professor_id course.course_id %}">Course Materials</a>
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h2>Update Material</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="title" name="title" value="{{ material.title }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Current File</label>
+                    <p class="form-text">{{ material.file.name }}</p>
+                    <label for="file" class="form-label">Upload New File (optional)</label>
+                    <input type="file" class="form-control" id="file" name="file">
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Update Material</button>
+                    <a href="{% url 'course_materials_manage' professor.professor_id course.course_id %}" 
+                       class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

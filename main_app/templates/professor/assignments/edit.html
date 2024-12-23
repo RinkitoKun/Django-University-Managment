@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Assignment - {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="mb-0">Edit Assignment</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="title" name="title" 
+                           value="{{ assignment.title }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" 
+                              required>{{ assignment.description }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="due_date" class="form-label">Due Date</label>
+                    <input type="date" class="form-control" id="due_date" name="due_date" 
+                           value="{{ assignment.due_date|date:'Y-m-d' }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="file" class="form-label">Assignment File (PDF)</label>
+                    <input type="file" class="form-control" id="file" name="file" accept=".pdf">
+                    {% if assignment.file %}
+                        <small class="text-muted">Current file: {{ assignment.file.name }}</small>
+                    {% endif %}
+                </div>
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">Update Assignment</button>
+                    <a href="{% url 'manage_assignments' professor.professor_id course.course_id %}" 
+                       class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

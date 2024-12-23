@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.contrib import admin
+from django.utils import timezone
 
 # Base abstract model
 class Person(AbstractBaseUser):
@@ -57,10 +58,10 @@ class Student(Person):
 
 class Professor(Person):
     professor_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
-    salary = models.DecimalField(max_digits=10, decimal_places=2)
     department = models.ForeignKey('Department', on_delete=models.CASCADE, related_name="professors")
-    course = models.OneToOneField('Course', on_delete=models.SET_NULL, null=True, blank=True, related_name="professor")
+    courses = models.ManyToManyField('Course', related_name="professors", blank=True)
     specialization = models.CharField(max_length=100)
+    # Removed salary field
 
     def check_assignments(self):
         return Assignment.objects.filter(course=self.course)
@@ -68,6 +69,31 @@ class Professor(Person):
     def give_marks(self, assignment, marks):
         assignment.grade = marks
         assignment.save()
+    
+    def upload_course_material(self, title, file, course):
+        """Upload course material for a specific course"""
+        return CourseMaterial.objects.create(
+            title=title,
+            file=file,
+            course=course
+        )
+
+    def mark_attendance(self, student, course, attendance_percent):
+        """Mark attendance for a student in a course"""
+        attendance, created = Attendance.objects.get_or_create(
+            student=student,
+            course=course,
+            defaults={'attendance_percent': attendance_percent}
+        )
+        if not created:
+            attendance.attendance_percent = attendance_percent
+            attendance.save()
+        return attendance
+
+    def grade_assignment(self, submission, grade):
+        """Grade a student's assignment submission"""
+        submission.grade = grade
+        submission.save()
 
 
 class Staff(Person):
@@ -174,11 +200,23 @@ class BorrowQueue:
         if self.queue:
             book, user = self.queue.pop(0)
             book.borrow_book(user)
+
 class CourseMaterial(models.Model):
     material_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     title = models.CharField(max_length=255)
     file = models.FileField(upload_to='course_materials/')
     course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name="materials")
+    upload_date = models.DateTimeField(auto_now_add=True)  # Remove default=timezone.now
+
+    def __str__(self):
+        return f"{self.title} - {self.course.name}"
+
+    def save(self, *args, **kwargs):
+        if not self.material_id:
+            prefix = 'MAT'
+            max_id = CourseMaterial.objects.count() + 1
+            self.material_id = f"{prefix}{max_id:05d}"
+        super().save(*args, **kwargs)
 
 class AssignmentSubmission(models.Model):
     submission_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
@@ -188,10 +226,17 @@ class AssignmentSubmission(models.Model):
     grade = models.CharField(max_length=5, null=True, blank=True, default="Not Graded")
     submission_date = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        if not self.submission_id:
+            prefix = 'SUB'
+            max_id = AssignmentSubmission.objects.count() + 1
+            self.submission_id = f"{prefix}{max_id:05d}"
+        super().save(*args, **kwargs)
+
 class Room(models.Model):
     room_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     room_type = models.CharField(max_length=100)
-    capacity = models.PositiveIntegerField()
+    # Removed capacity field
     department = models.ForeignKey('Department', on_delete=models.CASCADE, related_name="rooms")
 
 class GradingQueue:
@@ -214,6 +259,7 @@ class Course(models.Model):
     course_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
+    # Remove the professor field since it's handled by the M2M relationship in Professor model
 
     def __str__(self):
         return self.name
@@ -221,7 +267,7 @@ class Course(models.Model):
 
 class Schedule(models.Model):
     schedule_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
-    course = models.OneToOneField('Course', on_delete=models.CASCADE, related_name="schedule")
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name="schedules")  # Changed from OneToOneField
     date = models.DateField()
     time = models.TimeField()
     type = models.CharField(max_length=50)
@@ -236,15 +282,27 @@ class Assignment(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     due_date = models.DateField()
-    grade = models.CharField(max_length=5, null=True, blank=True)
+    file = models.FileField(upload_to='assignments/instructions/', null=True, blank=True)
     course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name="assignments")
+
+    def __str__(self):
+        return f"{self.title} - {self.course.name}"
 
 
 class Attendance(models.Model):
     attendance_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="attendances")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="attendances")
-    attendance_percent = models.FloatField()
+    schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE, related_name="attendances", null=True, blank=True)
+    is_present = models.BooleanField(default=False)
+    attendance_percent = models.FloatField(default=0)
+    date_marked = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['student', 'course', 'schedule']
+
+    def __str__(self):
+        return f"{self.student.name} - {self.course.name} - {self.schedule.date if self.schedule else 'No Schedule'}"
 
 
 class Enrollment(models.Model):
@@ -264,7 +322,7 @@ class Enrollment(models.Model):
 
 models_with_auto_id = [
     Student, Professor, Staff, Library, Room, Department, Course,
-    Schedule, Assignment, Attendance, Enrollment
+    Schedule, Assignment, Attendance, Enrollment, CourseMaterial, AssignmentSubmission  # Add AssignmentSubmission here
 ]
 
 # Define the prefix mapping
@@ -280,6 +338,8 @@ prefix_mapping = {
     'Assignment': 'ASS',
     'Attendance': 'ATT',
     'Enrollment': 'ENR',
+    'CourseMaterial': 'MAT',  # Add this line
+    'AssignmentSubmission': 'SUB',  # Add this line
 }
 
 # Helper function to register signals dynamically

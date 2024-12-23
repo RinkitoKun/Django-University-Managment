@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Grade Submissions - {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h2 class="mb-0">{{ assignment.title }} - Submissions</h2>
+            <p class="text-muted">Due Date: {{ assignment.due_date|date:"F j, Y" }}</p>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{% url 'save_grades' professor.professor_id course.course_id assignment.assignment_id %}" id="gradeForm">
+                {% csrf_token %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Submission Date</th>
+                                <th>File</th>
+                                <th>Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for submission in submissions %}
+                            <tr>
+                                <td>{{ submission.student.student_id }}</td>
+                                <td>{{ submission.student.name }}</td>
+                                <td>{{ submission.submission_date|date:"F j, Y H:i" }}</td>
+                                <td>
+                                    <a href="{{ submission.file.url }}" target="_blank" class="btn btn-sm btn-info">
+                                        View Submission
+                                    </a>
+                                </td>
+                                <td>
+                                    <input type="number" 
+                                           name="grade_{{ submission.submission_id }}" 
+                                           class="form-control form-control-sm" 
+                                           style="width: 80px"
+                                           value="{{ submission.grade|default:'' }}"
+                                           min="0" 
+                                           max="100">
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-end mt-3">
+                    <button type="submit" class="btn btn-primary">Save Grades</button>
+                    <a href="{% url 'manage_assignments' professor.professor_id course.course_id %}" 
+                       class="btn btn-secondary">Back</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

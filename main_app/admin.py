@@ -1,29 +1,27 @@
 from django.contrib import admin
 from .models import (
-    Student,
-    Professor,
-    Staff,
-    Library,
-    Room,
-    Department,
-    Course,
-    Schedule,
-    Assignment,
-    Attendance,
-    Enrollment,
-    BookLending
+    Student, Professor, Staff, Course, Library, Schedule,
+    Assignment, AssignmentSubmission, Room, Department, Attendance,
+    Enrollment, CourseMaterial, BookLending
 )
+from django import forms
 
 class EnrollmentInline(admin.TabularInline):
     model = Enrollment
     extra = 1
+
+class ProfessorCoursesInline(admin.TabularInline):
+    model = Professor.courses.through
+    extra = 1
+    verbose_name = "Course"
+    verbose_name_plural = "Courses"
 
 # Admin Configuration
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('name', 'email', 'student_id', 'get_enrolled_courses')
     search_fields = ('name', 'email', 'student_id')
-    exclude = ('student_id', 'last_login')
+
     inlines = [EnrollmentInline]
 
     def get_enrolled_courses(self, obj):
@@ -33,10 +31,14 @@ class StudentAdmin(admin.ModelAdmin):
     
 @admin.register(Professor)
 class ProfessorAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'professor_id', 'department')
+    list_display = ('name', 'email', 'professor_id', 'department', 'get_courses')
     search_fields = ('name', 'email', 'professor_id')
-    list_filter = ('department',)
-    exclude = ('professor_id',)
+    exclude = ('staff_id', 'student_id', 'courses')  # Exclude courses field since we're using inline
+    inlines = [ProfessorCoursesInline]
+
+    def get_courses(self, obj):
+        return ", ".join([course.name for course in obj.courses.all()])
+    get_courses.short_description = 'Courses'
 
 
 @admin.register(Staff)
@@ -62,7 +64,7 @@ class BookLendingAdmin(admin.ModelAdmin):
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ('room_type', 'capacity', 'department')
+    list_display = ('room_id', 'room_type', 'department')
     search_fields = ('room_type',)
     list_filter = ('department',)
     exclude = ('room_id',)
@@ -77,9 +79,12 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ('course_id', 'name')
+    list_display = ('course_id', 'name', 'get_professors')
     search_fields = ('course_id', 'name')
-    exclude = ('course_id',)
+
+    def get_professors(self, obj):
+        return ", ".join([prof.name for prof in obj.professors.all()])
+    get_professors.short_description = 'Professors'
 
 
 @admin.register(Schedule)
@@ -92,18 +97,23 @@ class ScheduleAdmin(admin.ModelAdmin):
 
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
-    list_display = ('title', 'course', 'due_date', 'grade')
+    list_display = ('assignment_id', 'title', 'due_date', 'course')
     search_fields = ('title', 'course__name')
-    list_filter = ('due_date',)
-    exclude = ('assignment_id',)
+    list_filter = ('course', 'due_date')
+
+
+@admin.register(AssignmentSubmission)
+class AssignmentSubmissionAdmin(admin.ModelAdmin):
+    list_display = ('submission_id', 'student', 'assignment', 'submission_date', 'grade')
+    search_fields = ('student__name', 'assignment__title')
+    list_filter = ('submission_date', 'grade')
 
 
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ('student', 'course', 'attendance_percent')
+    list_display = ('student', 'course', 'is_present', 'attendance_percent')
     search_fields = ('student__name', 'course__name')
-    list_filter = ('attendance_percent',)
-    exclude = ('attendance_id',)
+    list_filter = ('is_present', 'course')
 
 
 @admin.register(Enrollment)
@@ -111,4 +121,10 @@ class EnrollmentAdmin(admin.ModelAdmin):
     list_display = ('student', 'course', 'enrollment_date')
     search_fields = ('student__name', 'course__name')
     list_filter = ('enrollment_date',)
-    exclude = ('enrollment_id',)
+
+
+@admin.register(CourseMaterial)
+class CourseMaterialAdmin(admin.ModelAdmin):
+    list_display = ('material_id', 'title', 'course', 'upload_date')
+    search_fields = ('title', 'course__name')
+    list_filter = ('course', 'upload_date')
