@@ -41,7 +41,7 @@ def professor_dashboard(request, professor_id):
     professor = get_object_or_404(Professor, professor_id=professor_id)
     # Change this line to use the many-to-many relationship
     courses = professor.courses.all()
-    return render(request, 'professor_dashboard.html', {
+    return render(request, 'professor/professor_dashboard.html', {
         'professor': professor,
         'courses': courses
     })
@@ -54,7 +54,7 @@ def library_view(request, student_id):
         student = Student.objects.get(student_id=student_id)
         borrowed_books = student.borrowed_books.all()
         books = Library.objects.all()
-        return render(request, 'library.html', {
+        return render(request, 'student/library/library.html', {
             'student': student,
             'borrowed_books': borrowed_books,
             'books': books,
@@ -174,7 +174,7 @@ def student_dashboard(request, student_id):
         'schedules': today_schedules,
     }
 
-    return render(request, 'student_dashboard.html', context)
+    return render(request, 'student/student_dashboard.html', context)
 
 # Course detail view
 def course_detail(request, student_id, course_id):
@@ -198,7 +198,7 @@ def course_detail(request, student_id, course_id):
             )
             messages.success(request, 'Assignment submitted successfully!')
             
-    return render(request, 'course_detail.html', {
+    return render(request, 'student/course/course_detail.html', {
         'student': student,
         'course': course,
         'materials': materials,
@@ -252,7 +252,7 @@ def assignment_detail(request, student_id, course_id, assignment_id):
 def professor_course_detail(request, professor_id, course_id):
     professor = get_object_or_404(Professor, professor_id=professor_id)
     course = get_object_or_404(Course, course_id=course_id)
-    return render(request, 'professor/course_detail.html', {
+    return render(request, 'professor/course/course_detail.html', {
         'professor': professor,
         'course': course
     })
@@ -287,7 +287,7 @@ def course_materials_manage(request, professor_id, course_id):
             
             return redirect('course_materials_manage', professor_id=professor_id, course_id=course_id)
 
-    return render(request, 'professor/course_materials.html', {
+    return render(request, 'professor/course/course_materials.html', {
         'professor': professor,
         'course': course,
         'materials': materials
@@ -326,6 +326,8 @@ def update_course_material(request, professor_id, course_id, material_id):
         'course': material.course,
         'material': material
     })
+
+
 
 # Attendance Management Views
 def manage_attendance(request, professor_id, course_id):
@@ -482,7 +484,7 @@ def grade_submissions(request, professor_id, course_id, assignment_id):
 
 def update_assignment(request, professor_id, course_id, assignment_id):
     professor = get_object_or_404(Professor, professor_id=professor_id)
-    course = get_object_or__404(Course, course_id=course_id)
+    course = get_object_or_404(Course, course_id=course_id)
     assignment = get_object_or_404(Assignment, assignment_id=assignment_id)
 
     if request.method == 'POST':

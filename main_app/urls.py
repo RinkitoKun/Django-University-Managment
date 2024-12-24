@@ -29,8 +29,6 @@ urlpatterns = [
          views.submit_assignment, name='submit_assignment'),
 
     # Professor Course Management
-    path('professor/<str:professor_id>/course/<str:course_id>/attendance/', 
-         views.manage_attendance, name='manage_attendance'),
     path('professor/<str:professor_id>/course/<str:course_id>/', 
          views.professor_course_detail, name='professor_course_detail'),
     path('professor/<str:professor_id>/course/<str:course_id>/materials/', 
@@ -57,6 +55,8 @@ urlpatterns = [
     # Attendance Management
     path('professor/<str:professor_id>/course/<str:course_id>/attendance/<str:schedule_id>/', 
          views.mark_attendance, name='mark_attendance'),
+    path('professor/<str:professor_id>/course/<str:course_id>/attendance/', 
+         views.manage_attendance, name='manage_attendance'),
 
     # Add Schedule
     path('professor/<str:professor_id>/course/<str:course_id>/schedule/add/', 
