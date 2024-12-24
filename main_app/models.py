@@ -2,12 +2,11 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from django.contrib import admin
 from django.utils import timezone
 
 # Base abstract model
 class Person(AbstractBaseUser):
-    student_id=models.CharField(max_length=10)
+    student_id = models.CharField(max_length=10)
     name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=255)
@@ -55,13 +54,11 @@ class Student(Person):
     def get_borrowed_books(self):
         return Library.objects.filter(booklending__student=self, booklending__return_date__isnull=True)
 
-
 class Professor(Person):
     professor_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     department = models.ForeignKey('Department', on_delete=models.CASCADE, related_name="professors")
     courses = models.ManyToManyField('Course', related_name="professors", blank=True)
     specialization = models.CharField(max_length=100)
-    # Removed salary field
 
     def check_assignments(self):
         return Assignment.objects.filter(course=self.course)
@@ -95,7 +92,6 @@ class Professor(Person):
         submission.grade = grade
         submission.save()
 
-
 class Staff(Person):
     staff_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     position = models.CharField(max_length=100)
@@ -113,12 +109,6 @@ class Staff(Person):
     def set_schedule(self, course, date, time):
         Schedule.objects.create(course=course, date=date, time=time, type="Class")
 
-
-class BookFactory:
-    @staticmethod
-    def create_book(book_name, category, quantity):
-        return Library(book_name=book_name, category=category, quantity=quantity, status="Present")
-
 class BookLending(models.Model):
     book = models.ForeignKey('Library', on_delete=models.CASCADE)
     student = models.ForeignKey('Student', on_delete=models.CASCADE)
@@ -127,7 +117,6 @@ class BookLending(models.Model):
     
     class Meta:
         unique_together = ['book', 'student', 'borrow_date']
-
 
 class Library(models.Model):
     STATUS_CHOICES = [
@@ -176,37 +165,12 @@ class Library(models.Model):
             return True
         return False
 
-# Factory Design Pattern
-class BookFactory:
-    @staticmethod
-    def create_book(book_name, book_description, category, quantity, book_cover=None):
-        return Library.objects.create(
-            book_name=book_name,
-            book_description=book_description,
-            category=category,
-            quantity=quantity,
-            book_cover=book_cover
-        )
-
-# Queue for managing borrow requests
-class BorrowQueue:
-    def __init__(self):
-        self.queue = []
-
-    def enqueue(self, book, user):
-        self.queue.append((book, user))
-
-    def process_next(self):
-        if self.queue:
-            book, user = self.queue.pop(0)
-            book.borrow_book(user)
-
 class CourseMaterial(models.Model):
     material_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     title = models.CharField(max_length=255)
     file = models.FileField(upload_to='course_materials/')
     course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name="materials")
-    upload_date = models.DateTimeField(auto_now_add=True)  # Remove default=timezone.now
+    upload_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.title} - {self.course.name}"
@@ -236,7 +200,6 @@ class AssignmentSubmission(models.Model):
 class Room(models.Model):
     room_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     room_type = models.CharField(max_length=100)
-    # Removed capacity field
     department = models.ForeignKey('Department', on_delete=models.CASCADE, related_name="rooms")
 
 class GradingQueue:
@@ -254,20 +217,17 @@ class Department(models.Model):
     name = models.CharField(max_length=100, unique=True)
     location = models.CharField(max_length=255)
 
-
 class Course(models.Model):
     course_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    # Remove the professor field since it's handled by the M2M relationship in Professor model
 
     def __str__(self):
         return self.name
 
-
 class Schedule(models.Model):
     schedule_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
-    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name="schedules")  # Changed from OneToOneField
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name="schedules")
     date = models.DateField()
     time = models.TimeField()
     type = models.CharField(max_length=50)
@@ -275,7 +235,6 @@ class Schedule(models.Model):
 
     def __str__(self):
         return f"Schedule for {self.course.name} on {self.date} at {self.time}"
-
 
 class Assignment(models.Model):
     assignment_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
@@ -287,7 +246,6 @@ class Assignment(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.course.name}"
-
 
 class Attendance(models.Model):
     attendance_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
@@ -304,26 +262,14 @@ class Attendance(models.Model):
     def __str__(self):
         return f"{self.student.name} - {self.course.name} - {self.schedule.date if self.schedule else 'No Schedule'}"
 
-
 class Enrollment(models.Model):
-    enrollment_id = models.CharField(
-        max_length=20, primary_key=True, unique=True, blank=True, editable=False
-    )
-    student = models.ForeignKey(
-        Student, on_delete=models.CASCADE, related_name="enrollments"
-    )
-    course = models.ForeignKey(
-        Course, on_delete=models.CASCADE, related_name="enrollments"
-    )
+    enrollment_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="enrollments")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
     enrollment_date = models.DateField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.student.name} - {self.course.name}"
-
-models_with_auto_id = [
-    Student, Professor, Staff, Library, Room, Department, Course,
-    Schedule, Assignment, Attendance, Enrollment, CourseMaterial, AssignmentSubmission  # Add AssignmentSubmission here
-]
 
 # Define the prefix mapping
 prefix_mapping = {
@@ -338,9 +284,15 @@ prefix_mapping = {
     'Assignment': 'ASS',
     'Attendance': 'ATT',
     'Enrollment': 'ENR',
-    'CourseMaterial': 'MAT',  # Add this line
-    'AssignmentSubmission': 'SUB',  # Add this line
+    'CourseMaterial': 'MAT',
+    'AssignmentSubmission': 'SUB',
 }
+
+# List of models with auto-generated IDs
+models_with_auto_id = [
+    Student, Professor, Staff, Library, Room, Department, Course,
+    Schedule, Assignment, Attendance, Enrollment, CourseMaterial, AssignmentSubmission
+]
 
 # Helper function to register signals dynamically
 def create_signal(model):

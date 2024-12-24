@@ -4,7 +4,6 @@ from .models import (
     Assignment, AssignmentSubmission, Room, Department, Attendance,
     Enrollment, CourseMaterial, BookLending
 )
-from django import forms
 
 class EnrollmentInline(admin.TabularInline):
     model = Enrollment
@@ -21,14 +20,12 @@ class ProfessorCoursesInline(admin.TabularInline):
 class StudentAdmin(admin.ModelAdmin):
     list_display = ('name', 'email', 'student_id', 'get_enrolled_courses')
     search_fields = ('name', 'email', 'student_id')
-
     inlines = [EnrollmentInline]
 
     def get_enrolled_courses(self, obj):
         return ", ".join(course.name for course in obj.enrolled_courses.all())
     get_enrolled_courses.short_description = 'Enrolled Courses'
 
-    
 @admin.register(Professor)
 class ProfessorAdmin(admin.ModelAdmin):
     list_display = ('name', 'email', 'professor_id', 'department', 'get_courses')
@@ -40,14 +37,12 @@ class ProfessorAdmin(admin.ModelAdmin):
         return ", ".join([course.name for course in obj.courses.all()])
     get_courses.short_description = 'Courses'
 
-
 @admin.register(Staff)
 class StaffAdmin(admin.ModelAdmin):
     list_display = ('name', 'email', 'staff_id', 'position', 'department')
     search_fields = ('name', 'email', 'staff_id', 'position')
     list_filter = ('department',)
     exclude = ('staff_id',)
-
 
 @admin.register(Library)
 class LibraryAdmin(admin.ModelAdmin):
@@ -69,13 +64,11 @@ class RoomAdmin(admin.ModelAdmin):
     list_filter = ('department',)
     exclude = ('room_id',)
 
-
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
     list_display = ('name', 'location')
     search_fields = ('name',)
     exclude = ('department_id',)
-
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
@@ -86,7 +79,6 @@ class CourseAdmin(admin.ModelAdmin):
         return ", ".join([prof.name for prof in obj.professors.all()])
     get_professors.short_description = 'Professors'
 
-
 @admin.register(Schedule)
 class ScheduleAdmin(admin.ModelAdmin):
     list_display = ('course', 'date', 'time', 'type', 'room')
@@ -94,13 +86,11 @@ class ScheduleAdmin(admin.ModelAdmin):
     list_filter = ('type',)
     exclude = ('schedule_id',)
 
-
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
     list_display = ('assignment_id', 'title', 'due_date', 'course')
     search_fields = ('title', 'course__name')
     list_filter = ('course', 'due_date')
-
 
 @admin.register(AssignmentSubmission)
 class AssignmentSubmissionAdmin(admin.ModelAdmin):
@@ -108,20 +98,17 @@ class AssignmentSubmissionAdmin(admin.ModelAdmin):
     search_fields = ('student__name', 'assignment__title')
     list_filter = ('submission_date', 'grade')
 
-
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
     list_display = ('student', 'course', 'is_present', 'attendance_percent')
     search_fields = ('student__name', 'course__name')
     list_filter = ('is_present', 'course')
 
-
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
     list_display = ('student', 'course', 'enrollment_date')
     search_fields = ('student__name', 'course__name')
     list_filter = ('enrollment_date',)
-
 
 @admin.register(CourseMaterial)
 class CourseMaterialAdmin(admin.ModelAdmin):

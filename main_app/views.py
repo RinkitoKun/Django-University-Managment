@@ -1,18 +1,16 @@
 # file: views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.hashers import check_password
+from django.contrib import messages
+from django.utils import timezone
+from django.http import JsonResponse
+from datetime import datetime
+
 from .models import (
-    Student, Professor, Course, Library, BorrowQueue, Schedule,
+    Student, Professor, Course, Library, Schedule,
     Assignment, AssignmentSubmission, GradingQueue, BookLending, CourseMaterial, Attendance
 )
 from .forms import AssignmentSubmissionForm
-from django.contrib import messages
-from django.utils import timezone
-from django.forms import formset_factory
-from django.db.models import Avg
-from django.http import JsonResponse
-from datetime import datetime
 
 # Login view
 def login_view(request):
@@ -39,7 +37,6 @@ def login_view(request):
 # Professor dashboard
 def professor_dashboard(request, professor_id):
     professor = get_object_or_404(Professor, professor_id=professor_id)
-    # Change this line to use the many-to-many relationship
     courses = professor.courses.all()
     return render(request, 'professor/professor_dashboard.html', {
         'professor': professor,
@@ -47,8 +44,6 @@ def professor_dashboard(request, professor_id):
     })
 
 # Library view
-borrow_queue = BorrowQueue()
-
 def library_view(request, student_id):
     try:
         student = Student.objects.get(student_id=student_id)
@@ -105,6 +100,7 @@ def borrow_book(request, student_id, book_id):
     except Library.DoesNotExist:
         messages.error(request, "Book not found")
         return redirect('library', student_id=student_id)
+
 # Return a book
 def return_book(request, student_id, book_id):
     try:
@@ -327,19 +323,13 @@ def update_course_material(request, professor_id, course_id, material_id):
         'material': material
     })
 
-
-
 # Attendance Management Views
 def manage_attendance(request, professor_id, course_id):
-    print(f"Debug: Accessing manage_attendance with professor_id={professor_id}, course_id={course_id}")
     try:
         professor = get_object_or_404(Professor, professor_id=professor_id)
         course = get_object_or_404(Course, course_id=course_id)
         
-        print(f"Debug: Found professor={professor.name}, course={course.name}")
-        
         schedules = Schedule.objects.filter(course=course).order_by('-date', '-time')
-        print(f"Debug: Found {schedules.count()} schedules")
         
         context = {
             'professor': professor,
@@ -349,7 +339,6 @@ def manage_attendance(request, professor_id, course_id):
         
         return render(request, 'professor/attendance/manage.html', context)
     except Exception as e:
-        print(f"Error in manage_attendance: {str(e)}")
         messages.error(request, f"Error accessing attendance page: {str(e)}")
         return redirect('professor_dashboard', professor_id=professor_id)
 
@@ -423,6 +412,7 @@ def add_schedule(request, professor_id, course_id):
     
     return redirect('manage_attendance', professor_id=professor_id, course_id=course_id)
 
+# Assignment Management Views
 def manage_assignments(request, professor_id, course_id):
     professor = get_object_or_404(Professor, professor_id=professor_id)
     course = get_object_or_404(Course, course_id=course_id)
@@ -440,7 +430,7 @@ def add_assignment(request, professor_id, course_id):
         course = get_object_or_404(Course, course_id=course_id)
         
         try:
-            assignment = Assignment.objects.create(
+            Assignment.objects.create(
                 title=request.POST['title'],
                 description=request.POST['description'],
                 due_date=request.POST['due_date'],
