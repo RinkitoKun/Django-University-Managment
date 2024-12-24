@@ -3,7 +3,7 @@ from . import views
 
 urlpatterns = [
     # Login
-    path('login/', views.login_view, name='login'),
+    path('', views.login_view, name='login'),
     
     # Student Dashboard
     path('student/<str:student_id>/', views.student_dashboard, name='student_dashboard'),
@@ -50,6 +50,8 @@ urlpatterns = [
          views.update_assignment, name='update_assignment'),
     path('professor/<str:professor_id>/course/<str:course_id>/assignments/<str:assignment_id>/save-grades/', 
          views.save_grades, name='save_grades'),
+    path('professor/<int:professor_id>/course/<int:course_id>/assignments/manage/', 
+         views.manage_assignments, name='manage_assignments'),
 
     # Attendance Management
     path('professor/<str:professor_id>/course/<str:course_id>/attendance/<str:schedule_id>/', 
@@ -58,6 +60,6 @@ urlpatterns = [
          views.manage_attendance, name='manage_attendance'),
 
     # Add Schedule
-    path('professor/<str:professor_id>/course/<str:course_id>/schedule/add/', 
+    path('professor/<int:professor_id>/course/<int:course_id>/schedule/add/', 
          views.add_schedule, name='add_schedule'),
 ]

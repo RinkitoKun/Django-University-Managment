@@ -256,7 +256,7 @@ def professor_course_detail(request, professor_id, course_id):
 def course_materials_manage(request, professor_id, course_id):
     professor = get_object_or_404(Professor, professor_id=professor_id)
     course = get_object_or_404(Course, course_id=course_id)
-    materials = CourseMaterial.objects.filter(course=course)
+    materials = CourseMaterial.objects.filter(course=course).order_by('-upload_date')
 
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -264,19 +264,12 @@ def course_materials_manage(request, professor_id, course_id):
         
         if title and file:
             try:
-                # Get the next available material ID
-                prefix = 'MAT'
-                max_id = CourseMaterial.objects.count() + 1
-                material_id = f"{prefix}{max_id:05d}"
-                
                 material = CourseMaterial(
-                    material_id=material_id,
                     title=title,
                     file=file,
                     course=course
                 )
                 material.save()
-                
                 messages.success(request, 'Material uploaded successfully')
             except Exception as e:
                 messages.error(request, f'Error uploading material: {str(e)}')
@@ -350,39 +343,28 @@ def mark_attendance(request, professor_id, course_id, schedule_id):
 
     if request.method == 'POST':
         present_students = request.POST.getlist('attendance[]')
-        
+        attendance_dict = {str(student.student_id): False for student in students}
+
+        for student_id in present_students:
+            attendance_dict[student_id] = True
+
         for student in students:
-            # Create or update attendance record
             attendance, created = Attendance.objects.get_or_create(
                 student=student,
                 course=course,
+                schedule=schedule,
                 defaults={'attendance_percent': 0}
             )
-            
-            # Calculate total schedules and attended schedules
-            total_schedules = Schedule.objects.filter(course=course).count()
-            attended_schedules = Attendance.objects.filter(
-                student=student,
-                course=course,
-                is_present=True
-            ).count()
-            
-            # Update attendance percentage
-            if total_schedules > 0:
-                attendance.attendance_percent = (attended_schedules / total_schedules) * 100
-                attendance.save()
-
-            # Mark attendance for current schedule
-            attendance.is_present = str(student.student_id) in present_students
+            attendance.is_present = attendance_dict[str(student.student_id)]
             attendance.save()
 
         messages.success(request, 'Attendance marked successfully')
         return redirect('manage_attendance', professor_id=professor_id, course_id=course_id)
 
-    # Get existing attendance records for this schedule
     attendance_records = Attendance.objects.filter(
         student__in=students,
-        course=course
+        course=course,
+        schedule=schedule
     )
     attendance_dict = {str(a.student.student_id): a.is_present for a in attendance_records}
 
@@ -392,36 +374,6 @@ def mark_attendance(request, professor_id, course_id, schedule_id):
         'schedule': schedule,
         'students': students,
         'attendance_dict': attendance_dict
-    })
-
-def add_schedule(request, professor_id, course_id):
-    professor = get_object_or_404(Professor, professor_id=professor_id)
-    course = get_object_or_404(Course, course_id=course_id)
-
-    if request.method == 'POST':
-        try:
-            Schedule.objects.create(
-                course=course,
-                date=request.POST.get('date'),
-                time=request.POST.get('time'),
-                type=request.POST.get('type')
-            )
-            messages.success(request, 'Schedule added successfully')
-        except Exception as e:
-            messages.error(request, f'Error adding schedule: {str(e)}')
-    
-    return redirect('manage_attendance', professor_id=professor_id, course_id=course_id)
-
-# Assignment Management Views
-def manage_assignments(request, professor_id, course_id):
-    professor = get_object_or_404(Professor, professor_id=professor_id)
-    course = get_object_or_404(Course, course_id=course_id)
-    assignments = Assignment.objects.filter(course=course)
-    
-    return render(request, 'professor/assignments/manage.html', {
-        'professor': professor,
-        'course': course,
-        'assignments': assignments
     })
 
 def add_assignment(request, professor_id, course_id):
@@ -517,6 +469,15 @@ def save_grades(request, professor_id, course_id, assignment_id):
     return redirect('grade_submissions', professor_id=professor_id, 
                    course_id=course_id, assignment_id=assignment_id)
 
+class AssignmentSubmissionFactory:
+    @staticmethod
+    def create_submission(assignment, student, file):
+        return AssignmentSubmission.objects.create(
+            assignment=assignment,
+            student=student,
+            file=file
+        )
+
 def submit_assignment(request, student_id, course_id, assignment_id):
     if request.method == 'POST':
         try:
@@ -537,13 +498,15 @@ def submit_assignment(request, student_id, course_id, assignment_id):
                         'error': 'You have already submitted this assignment'
                     })
                 
-                # Create new submission
-                submission = AssignmentSubmission(
+                # Create new submission using factory
+                submission = AssignmentSubmissionFactory.create_submission(
                     assignment=assignment,
                     student=student,
                     file=submission_file
                 )
-                submission.save()
+                # Enqueue the submission
+                grading_queue.append(submission)
+    
                 
                 return JsonResponse({'success': True})
             else:
@@ -553,3 +516,41 @@ def submit_assignment(request, student_id, course_id, assignment_id):
             return JsonResponse({'success': False, 'error': str(e)})
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+def manage_assignments(request, professor_id, course_id):
+    professor = get_object_or_404(Professor, professor_id=professor_id)
+    course = get_object_or_404(Course, course_id=course_id)
+    assignments = Assignment.objects.filter(course=course).order_by('due_date')
+
+    return render(request, 'professor/assignments/manage.html', {
+        'professor': professor,
+        'course': course,
+        'assignments': assignments
+    })
+
+def add_schedule(request, professor_id, course_id):
+    professor = get_object_or_404(Professor, professor_id=professor_id)
+    course = get_object_or_404(Course, course_id=course_id)
+
+    if request.method == 'POST':
+        date = request.POST.get('date')
+        time = request.POST.get('time')
+        room = request.POST.get('room')
+
+        try:
+            Schedule.objects.create(
+                course=course,
+                date=date,
+                time=time,
+                room=room
+            )
+            messages.success(request, 'Schedule added successfully')
+        except Exception as e:
+            messages.error(request, f'Error adding schedule: {str(e)}')
+
+        return redirect('course_schedule', student_id=professor_id, course_id=course_id)
+
+    return render(request, 'professor/schedule/add.html', {
+        'professor': professor,
+        'course': course
+    })
