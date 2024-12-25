@@ -262,6 +262,32 @@ class Attendance(models.Model):
     def __str__(self):
         return f"{self.student.name} - {self.course.name} - {self.schedule.date if self.schedule else 'No Schedule'}"
 
+    def calculate_attendance_percent(self):
+        """Calculate attendance percentage for this student in this course"""
+        total_schedules = Schedule.objects.filter(course=self.course).count()
+        if total_schedules > 0:
+            attended_classes = Attendance.objects.filter(
+                student=self.student,
+                course=self.course,
+                is_present=True
+            ).count()
+            self.attendance_percent = round((attended_classes / total_schedules) * 100, 2)
+            self.save()
+        return self.attendance_percent
+
+    @classmethod
+    def get_course_attendance(cls, student, course):
+        """Get attendance percentage for a specific student and course"""
+        total_schedules = Schedule.objects.filter(course=course).count()
+        if total_schedules > 0:
+            attended_classes = cls.objects.filter(
+                student=student,
+                course=course,
+                is_present=True
+            ).count()
+            return round((attended_classes / total_schedules) * 100, 2)
+        return 0.0
+
 class Enrollment(models.Model):
     enrollment_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="enrollments")

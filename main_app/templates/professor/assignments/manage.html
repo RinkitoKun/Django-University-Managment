@@ -46,6 +46,46 @@
                                     </form>
                                 </td>
                             </tr>
+
+                            <!-- Edit Assignment Modal -->
+                            <div class="modal fade" id="editAssignmentModal{{ assignment.assignment_id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Edit Assignment</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form method="POST" action="{% url 'update_assignment' professor.professor_id course.course_id assignment.assignment_id %}" enctype="multipart/form-data">
+                                                {% csrf_token %}
+                                                <div class="mb-3">
+                                                    <label for="title" class="form-label">Title</label>
+                                                    <input type="text" class="form-control" id="title" name="title" value="{{ assignment.title }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="description" class="form-label">Description</label>
+                                                    <textarea class="form-control" id="description" name="description" required>{{ assignment.description }}</textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="due_date" class="form-label">Due Date</label>
+                                                    <input type="date" class="form-control" id="due_date" name="due_date" value="{{ assignment.due_date|date:'Y-m-d' }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="file" class="form-label">Assignment File (PDF)</label>
+                                                    <input type="file" class="form-control" id="file" name="file" accept=".pdf">
+                                                    {% if assignment.file %}
+                                                        <small class="text-muted">Current file: {{ assignment.file.name }}</small>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="text-end">
+                                                    <button type="submit" class="btn btn-primary">Update Assignment</button>
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             {% endfor %}
                         </tbody>
                     </table>

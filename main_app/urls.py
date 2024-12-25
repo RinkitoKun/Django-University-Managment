@@ -24,7 +24,7 @@ urlpatterns = [
     # Assignment Details
     path('student/<str:student_id>/course/<str:course_id>/assignment/<str:assignment_id>/', 
          views.assignment_detail, name='assignment_detail'),
-    path('student/<str:student_id>/course/<str:course_id>/assignment/<str:assignment_id>/submit/',
+    path('student/<str:student_id>/course/<str:course_id>/assignment/<str:assignment_id>/submit/', 
          views.submit_assignment, name='submit_assignment'),
 
     # Professor Course Management
@@ -60,6 +60,6 @@ urlpatterns = [
          views.manage_attendance, name='manage_attendance'),
 
     # Add Schedule
-    path('professor/<int:professor_id>/course/<int:course_id>/schedule/add/', 
+    path('professor/<str:professor_id>/course/<str:course_id>/schedule/add/', 
          views.add_schedule, name='add_schedule'),
 ]

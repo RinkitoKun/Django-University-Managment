@@ -143,18 +143,33 @@ grading_queue = GradingQueue()
 def student_dashboard(request, student_id):
     student = get_object_or_404(Student, pk=student_id)
     courses = student.enrolled_courses.all()
-    attendance = student.attendances.all()
     
-    # Get current datetime in the user's timezone
+    # Calculate attendance percentage for each course
+    attendance_records = []
+    for course in courses:
+        total_schedules = Schedule.objects.filter(course=course).count()
+        if total_schedules > 0:
+            attended_classes = Attendance.objects.filter(
+                student=student,
+                course=course,
+                is_present=True
+            ).count()
+            attendance_percent = (attended_classes / total_schedules) * 100
+        else:
+            attendance_percent = 0
+            
+        attendance_records.append({
+            'course': course,
+            'attendance_percent': round(attendance_percent, 2)
+        })
+    
+    # Rest of the function remains the same
     current_datetime = timezone.now()
-    
-    # Get upcoming schedules
     schedules = Schedule.objects.filter(
         course__in=courses,
         date__gte=current_datetime.date()
     ).select_related('course', 'room').order_by('date', 'time')
     
-    # Filter out past schedules from today
     today_schedules = []
     for schedule in schedules:
         schedule_datetime = timezone.make_aware(
@@ -166,7 +181,7 @@ def student_dashboard(request, student_id):
     context = {
         'student': student,
         'courses': courses,
-        'attendance': attendance,
+        'attendance_records': attendance_records,  # Changed from attendance to attendance_records
         'schedules': today_schedules,
     }
 
@@ -175,9 +190,10 @@ def student_dashboard(request, student_id):
 # Course detail view
 def course_detail(request, student_id, course_id):
     student = get_object_or_404(Student, pk=student_id)
-    course = get_object_or_404(Course, pk=course_id)
+    course = get_object_or_404(Course.objects.prefetch_related('professors'), pk=course_id)
     materials = course.materials.all().order_by('-upload_date')
     assignments = course.assignments.all().order_by('due_date')
+    today = timezone.now().date()
 
     if request.method == 'POST':
         assignment_id = request.POST.get('assignment_id')
@@ -186,19 +202,42 @@ def course_detail(request, student_id, course_id):
         if assignment_id and submission_file:
             assignment = get_object_or_404(Assignment, assignment_id=assignment_id)
             
-            # Create submission
-            AssignmentSubmission.objects.create(
+            # Check if submission already exists
+            existing_submission = AssignmentSubmission.objects.filter(
                 assignment=assignment,
-                student=student,
-                file=submission_file
-            )
-            messages.success(request, 'Assignment submitted successfully!')
+                student=student
+            ).first()
             
+            if existing_submission:
+                existing_submission.file.delete()
+                existing_submission.file = submission_file
+                existing_submission.save()
+                messages.success(request, 'Assignment updated successfully!')
+            else:
+                # Create new submission
+                AssignmentSubmission.objects.create(
+                    assignment=assignment,
+                    student=student,
+                    file=submission_file
+                )
+                messages.success(request, 'Assignment submitted successfully!')
+        elif assignment_id and 'delete_submission' in request.POST:
+            assignment = get_object_or_404(Assignment, assignment_id=assignment_id)
+            existing_submission = AssignmentSubmission.objects.filter(
+                assignment=assignment,
+                student=student
+            ).first()
+            if existing_submission:
+                existing_submission.file.delete()
+                existing_submission.delete()
+                messages.success(request, 'Assignment deleted successfully!')
+
     return render(request, 'student/course/course_detail.html', {
         'student': student,
         'course': course,
         'materials': materials,
-        'assignments': assignments
+        'assignments': assignments,
+        'today': today
     })
 
 # Course materials
@@ -211,11 +250,36 @@ def course_materials(request, student_id, course_id):
 
 # Course schedule
 def course_schedule(request, student_id, course_id):
-    student = get_object_or_404(Student, id=student_id)
-    course = get_object_or_404(Course, id=course_id)
-    schedules = Schedule.objects.filter(course=course)
+    # First try to get student
+    student = None
+    professor = None
+    try:
+        student = Student.objects.get(student_id=student_id)
+    except Student.DoesNotExist:
+        # If student not found, try to get professor
+        try:
+            professor = Professor.objects.get(professor_id=student_id)
+        except Professor.DoesNotExist:
+            messages.error(request, "Invalid user ID")
+            return redirect('home')
+    
+    course = get_object_or_404(Course, course_id=course_id)
+    schedules = Schedule.objects.filter(course=course).order_by('date', 'time')
 
-    return render(request, 'course_schedule.html', {'student': student, 'course': course, 'schedules': schedules})
+    context = {
+        'course': course,
+        'schedules': schedules,
+    }
+
+    # Add either student or professor to context
+    if student:
+        context['student'] = student
+        template = 'student/course/schedule.html'
+    else:
+        context['professor'] = professor
+        template = 'professor/course/schedule.html'
+
+    return render(request, template, context)
 
 # Assignment detail
 def assignment_detail(request, student_id, course_id, assignment_id):
@@ -353,10 +417,26 @@ def mark_attendance(request, professor_id, course_id, schedule_id):
                 student=student,
                 course=course,
                 schedule=schedule,
-                defaults={'attendance_percent': 0}
+                defaults={'is_present': False, 'attendance_percent': 0}
             )
             attendance.is_present = attendance_dict[str(student.student_id)]
             attendance.save()
+
+            # Calculate overall attendance percentage for this student in this course
+            total_schedules = Schedule.objects.filter(course=course).count()
+            if total_schedules > 0:
+                attended_classes = Attendance.objects.filter(
+                    student=student,
+                    course=course,
+                    is_present=True
+                ).count()
+                attendance_percent = (attended_classes / total_schedules) * 100
+                
+                # Update all attendance records for this student in this course
+                Attendance.objects.filter(
+                    student=student,
+                    course=course
+                ).update(attendance_percent=attendance_percent)
 
         messages.success(request, 'Attendance marked successfully')
         return redirect('manage_attendance', professor_id=professor_id, course_id=course_id)
@@ -382,12 +462,15 @@ def add_assignment(request, professor_id, course_id):
         course = get_object_or_404(Course, course_id=course_id)
         
         try:
-            Assignment.objects.create(
+            assignment = Assignment(
                 title=request.POST['title'],
                 description=request.POST['description'],
                 due_date=request.POST['due_date'],
                 course=course
             )
+            if 'file' in request.FILES:
+                assignment.file = request.FILES['file']
+            assignment.save()
             messages.success(request, 'Assignment added successfully')
         except Exception as e:
             messages.error(request, f'Error adding assignment: {str(e)}')
@@ -479,25 +562,31 @@ class AssignmentSubmissionFactory:
         )
 
 def submit_assignment(request, student_id, course_id, assignment_id):
+    student = get_object_or_404(Student, pk=student_id)
+    assignment = get_object_or_404(Assignment, pk=assignment_id)
+
     if request.method == 'POST':
-        try:
-            student = get_object_or_404(Student, pk=student_id)
-            assignment = get_object_or_404(Assignment, pk=assignment_id)
-            submission_file = request.FILES.get('submission_file')
+        if '_method' in request.POST and request.POST['_method'] == 'DELETE':
+            submission = get_object_or_404(AssignmentSubmission, student_id=student_id, assignment_id=assignment_id)
+            submission.delete()
+            return JsonResponse({"success": True, "message": "Assignment deleted successfully", "assignment_id": assignment_id})
+        if assignment.due_date < timezone.now().date():
+            return JsonResponse({'success': False, 'error': 'The due date has passed. You cannot submit or edit the assignment.'})
+
+        submission_file = request.FILES.get('submission_file')
+        if submission_file:
+            # Check if submission already exists
+            existing_submission = AssignmentSubmission.objects.filter(
+                assignment=assignment,
+                student=student
+            ).first()
             
-            if submission_file:
-                # Check if submission already exists
-                existing_submission = AssignmentSubmission.objects.filter(
-                    assignment=assignment,
-                    student=student
-                ).first()
-                
-                if existing_submission:
-                    return JsonResponse({
-                        'success': False, 
-                        'error': 'You have already submitted this assignment'
-                    })
-                
+            if existing_submission:
+                existing_submission.file.delete()
+                existing_submission.file = submission_file
+                existing_submission.save()
+                return JsonResponse({'success': True, 'message': 'Assignment updated successfully', 'file_url': existing_submission.file.url, 'file_name': existing_submission.file.name})
+            else:
                 # Create new submission using factory
                 submission = AssignmentSubmissionFactory.create_submission(
                     assignment=assignment,
@@ -505,15 +594,22 @@ def submit_assignment(request, student_id, course_id, assignment_id):
                     file=submission_file
                 )
                 # Enqueue the submission
-                grading_queue.append(submission)
-    
+                grading_queue.enqueue(submission)
+                return JsonResponse({'success': True, 'message': 'Assignment submitted successfully', 'file_url': submission.file.url, 'file_name': submission.file.name})
+        else:
+            return JsonResponse({'success': False, 'error': 'No file uploaded'})
                 
-                return JsonResponse({'success': True})
-            else:
-                return JsonResponse({'success': False, 'error': 'No file uploaded'})
-                
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+    elif request.method == 'DELETE':
+        existing_submission = AssignmentSubmission.objects.filter(
+            assignment=assignment,
+            student=student
+        ).first()
+        if existing_submission:
+            existing_submission.file.delete()
+            existing_submission.delete()
+            return JsonResponse({'success': True, 'message': 'Assignment deleted successfully', 'assignment_id': assignment_id})
+        else:
+            return JsonResponse({'success': False, 'error': 'No submission found to delete'})
     
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
 
