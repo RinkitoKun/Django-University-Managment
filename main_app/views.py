@@ -34,6 +34,12 @@ def login_view(request):
 
     return render(request, 'login.html')
 
+# Add this new view function
+def logout_view(request):
+    if request.method == 'POST':
+        return redirect('login')
+    return redirect(request.META.get('HTTP_REFERER', 'login'))
+
 # Professor dashboard
 def professor_dashboard(request, professor_id):
     professor = get_object_or_404(Professor, professor_id=professor_id)
@@ -143,33 +149,18 @@ grading_queue = GradingQueue()
 def student_dashboard(request, student_id):
     student = get_object_or_404(Student, pk=student_id)
     courses = student.enrolled_courses.all()
+    attendance = student.attendances.all()
     
-    # Calculate attendance percentage for each course
-    attendance_records = []
-    for course in courses:
-        total_schedules = Schedule.objects.filter(course=course).count()
-        if total_schedules > 0:
-            attended_classes = Attendance.objects.filter(
-                student=student,
-                course=course,
-                is_present=True
-            ).count()
-            attendance_percent = (attended_classes / total_schedules) * 100
-        else:
-            attendance_percent = 0
-            
-        attendance_records.append({
-            'course': course,
-            'attendance_percent': round(attendance_percent, 2)
-        })
-    
-    # Rest of the function remains the same
+    # Get current datetime in the user's timezone
     current_datetime = timezone.now()
+    
+    # Get upcoming schedules
     schedules = Schedule.objects.filter(
         course__in=courses,
         date__gte=current_datetime.date()
     ).select_related('course', 'room').order_by('date', 'time')
     
+    # Filter out past schedules from today
     today_schedules = []
     for schedule in schedules:
         schedule_datetime = timezone.make_aware(
@@ -181,7 +172,7 @@ def student_dashboard(request, student_id):
     context = {
         'student': student,
         'courses': courses,
-        'attendance_records': attendance_records,  # Changed from attendance to attendance_records
+        'attendance': attendance,
         'schedules': today_schedules,
     }
 
@@ -190,7 +181,7 @@ def student_dashboard(request, student_id):
 # Course detail view
 def course_detail(request, student_id, course_id):
     student = get_object_or_404(Student, pk=student_id)
-    course = get_object_or_404(Course.objects.prefetch_related('professors'), pk=course_id)
+    course = get_object_or_404(Course, pk=course_id)
     materials = course.materials.all().order_by('-upload_date')
     assignments = course.assignments.all().order_by('due_date')
     today = timezone.now().date()
@@ -250,36 +241,11 @@ def course_materials(request, student_id, course_id):
 
 # Course schedule
 def course_schedule(request, student_id, course_id):
-    # First try to get student
-    student = None
-    professor = None
-    try:
-        student = Student.objects.get(student_id=student_id)
-    except Student.DoesNotExist:
-        # If student not found, try to get professor
-        try:
-            professor = Professor.objects.get(professor_id=student_id)
-        except Professor.DoesNotExist:
-            messages.error(request, "Invalid user ID")
-            return redirect('home')
-    
-    course = get_object_or_404(Course, course_id=course_id)
-    schedules = Schedule.objects.filter(course=course).order_by('date', 'time')
+    student = get_object_or_404(Student, id=student_id)
+    course = get_object_or_404(Course, id=course_id)
+    schedules = Schedule.objects.filter(course=course)
 
-    context = {
-        'course': course,
-        'schedules': schedules,
-    }
-
-    # Add either student or professor to context
-    if student:
-        context['student'] = student
-        template = 'student/course/schedule.html'
-    else:
-        context['professor'] = professor
-        template = 'professor/course/schedule.html'
-
-    return render(request, template, context)
+    return render(request, 'course_schedule.html', {'student': student, 'course': course, 'schedules': schedules})
 
 # Assignment detail
 def assignment_detail(request, student_id, course_id, assignment_id):
@@ -348,7 +314,8 @@ def course_materials_manage(request, professor_id, course_id):
 
 def delete_course_material(request, professor_id, course_id, material_id):
     professor = get_object_or_404(Professor, professor_id=professor_id)
-    material = get_object_or_404(CourseMaterial, material_id=material_id, course__professor=professor)
+    course = get_object_or_404(Course, course_id=course_id)
+    material = get_object_or_404(CourseMaterial, material_id=material_id, course=course)
     
     material.file.delete()  # Delete the actual file
     material.delete()       # Delete the database record
@@ -358,7 +325,8 @@ def delete_course_material(request, professor_id, course_id, material_id):
 
 def update_course_material(request, professor_id, course_id, material_id):
     professor = get_object_or_404(Professor, professor_id=professor_id)
-    material = get_object_or_404(CourseMaterial, material_id=material_id, course__professor=professor)
+    course = get_object_or_404(Course, course_id=course_id)
+    material = get_object_or_404(CourseMaterial, material_id=material_id, course=course)
     
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -374,9 +342,9 @@ def update_course_material(request, professor_id, course_id, material_id):
         messages.success(request, 'Material updated successfully')
         return redirect('course_materials_manage', professor_id=professor_id, course_id=course_id)
 
-    return render(request, 'professor/update_material.html', {
+    return render(request, 'professor/course/update_material.html', {
         'professor': professor,
-        'course': material.course,
+        'course': course,
         'material': material
     })
 
@@ -417,26 +385,10 @@ def mark_attendance(request, professor_id, course_id, schedule_id):
                 student=student,
                 course=course,
                 schedule=schedule,
-                defaults={'is_present': False, 'attendance_percent': 0}
+                defaults={'attendance_percent': 0}
             )
             attendance.is_present = attendance_dict[str(student.student_id)]
             attendance.save()
-
-            # Calculate overall attendance percentage for this student in this course
-            total_schedules = Schedule.objects.filter(course=course).count()
-            if total_schedules > 0:
-                attended_classes = Attendance.objects.filter(
-                    student=student,
-                    course=course,
-                    is_present=True
-                ).count()
-                attendance_percent = (attended_classes / total_schedules) * 100
-                
-                # Update all attendance records for this student in this course
-                Attendance.objects.filter(
-                    student=student,
-                    course=course
-                ).update(attendance_percent=attendance_percent)
 
         messages.success(request, 'Attendance marked successfully')
         return redirect('manage_attendance', professor_id=professor_id, course_id=course_id)
@@ -566,10 +518,6 @@ def submit_assignment(request, student_id, course_id, assignment_id):
     assignment = get_object_or_404(Assignment, pk=assignment_id)
 
     if request.method == 'POST':
-        if '_method' in request.POST and request.POST['_method'] == 'DELETE':
-            submission = get_object_or_404(AssignmentSubmission, student_id=student_id, assignment_id=assignment_id)
-            submission.delete()
-            return JsonResponse({"success": True, "message": "Assignment deleted successfully", "assignment_id": assignment_id})
         if assignment.due_date < timezone.now().date():
             return JsonResponse({'success': False, 'error': 'The due date has passed. You cannot submit or edit the assignment.'})
 
@@ -585,7 +533,7 @@ def submit_assignment(request, student_id, course_id, assignment_id):
                 existing_submission.file.delete()
                 existing_submission.file = submission_file
                 existing_submission.save()
-                return JsonResponse({'success': True, 'message': 'Assignment updated successfully', 'file_url': existing_submission.file.url, 'file_name': existing_submission.file.name})
+                return JsonResponse({'success': True, 'message': 'Assignment updated successfully', 'file_url': existing_submission.file.url, 'file_name': existing_submission.file.name, 'assignment_id': assignment_id})
             else:
                 # Create new submission using factory
                 submission = AssignmentSubmissionFactory.create_submission(
@@ -595,7 +543,7 @@ def submit_assignment(request, student_id, course_id, assignment_id):
                 )
                 # Enqueue the submission
                 grading_queue.enqueue(submission)
-                return JsonResponse({'success': True, 'message': 'Assignment submitted successfully', 'file_url': submission.file.url, 'file_name': submission.file.name})
+                return JsonResponse({'success': True, 'message': 'Assignment submitted successfully', 'file_url': submission.file.url, 'file_name': submission.file.name, 'assignment_id': assignment_id})
         else:
             return JsonResponse({'success': False, 'error': 'No file uploaded'})
                 

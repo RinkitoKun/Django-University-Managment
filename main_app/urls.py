@@ -5,6 +5,9 @@ urlpatterns = [
     # Login
     path('', views.login_view, name='login'),
     
+    # Logout
+    path('logout/', views.logout_view, name='logout'),
+
     # Student Dashboard
     path('student/<str:student_id>/', views.student_dashboard, name='student_dashboard'),
 
@@ -58,8 +61,6 @@ urlpatterns = [
          views.mark_attendance, name='mark_attendance'),
     path('professor/<str:professor_id>/course/<str:course_id>/attendance/', 
          views.manage_attendance, name='manage_attendance'),
-
-    # Add Schedule
-    path('professor/<str:professor_id>/course/<str:course_id>/schedule/add/', 
+    path('professor/<str:professor_id>/course/<str:course_id>/attendance/add/', 
          views.add_schedule, name='add_schedule'),
 ]

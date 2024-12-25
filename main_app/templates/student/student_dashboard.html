@@ -112,42 +112,37 @@
         <div class="col-12 mb-4">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="card-title mb-0">Upcoming Schedules</h5>
+                    <h5 class="card-title mb-0">Upcoming Schedule</h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Course</th>
-                                    <th>Date & Time</th>
-                                    <th>Type</th>
-                                    <th>Room</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for schedule in schedules %}
-                                <tr>
-                                    <td>{{ schedule.course.name }}</td>
-                                    <td>{{ schedule.date|date:"M d, Y" }} at {{ schedule.time|time:"H:i" }}</td>
-                                    <td><span class="badge bg-info">{{ schedule.type }}</span></td>
-                                    <td>
-                                        {% if schedule.room %}
-                                            {{ schedule.room.room_id }} 
-                                            <small class="text-muted">({{ schedule.room.room_type }})</small>
-                                        {% else %}
-                                            <span class="text-muted">Not assigned</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4" class="text-center text-muted">No upcoming schedules</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                    {% if schedules %}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Type</th>
+                                        <th>Room</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for schedule in schedules %}
+                                    <tr>
+                                        <td>{{ schedule.course.name }}</td>
+                                        <td>{{ schedule.date|date:"D, d M Y" }}</td>
+                                        <td>{{ schedule.time|time:"g:i A" }}</td>
+                                        <td>{{ schedule.get_type_display }}</td>
+                                        <td>{{ schedule.room|default:"Not Assigned" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No upcoming schedules found.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

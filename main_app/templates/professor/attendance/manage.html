@@ -16,9 +16,7 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h2 class="mb-0">{{ course.name }} - Schedule List</h2>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
-                Add New Schedule
-            </button>
+
         </div>
         <div class="card-body">
             {% if schedules %}
@@ -58,37 +56,5 @@
     </div>
 </div>
 
-<!-- Add Schedule Modal -->
-<div class="modal fade" id="addScheduleModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New Schedule</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form method="POST" action="{% url 'add_schedule' professor.professor_id course.course_id %}">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="date" class="form-label">Date</label>
-                        <input type="date" class="form-control" id="date" name="date" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="time" class="form-label">Time</label>
-                        <input type="time" class="form-control" id="time" name="time" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="type" class="form-label">Type</label>
-                        <select class="form-control" id="type" name="type" required>
-                            <option value="Lecture">Lecture</option>
-                            <option value="Lab">Lab</option>
-                            <option value="Tutorial">Tutorial</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Add Schedule</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+
 {% endblock %}

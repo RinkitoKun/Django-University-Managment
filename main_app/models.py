@@ -92,23 +92,6 @@ class Professor(Person):
         submission.grade = grade
         submission.save()
 
-class Staff(Person):
-    staff_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
-    position = models.CharField(max_length=100)
-    department = models.ForeignKey('Department', on_delete=models.CASCADE, related_name="staff")
-
-    def add_book(self, book_name, category, quantity):
-        Library.objects.create(book_name=book_name, category=category, quantity=quantity, status="Present")
-
-    def assign_room(self, room, course):
-        Schedule.objects.filter(course=course).update(room=room)
-
-    def view_attendance(self):
-        return Attendance.objects.all()
-
-    def set_schedule(self, course, date, time):
-        Schedule.objects.create(course=course, date=date, time=time, type="Class")
-
 class BookLending(models.Model):
     book = models.ForeignKey('Library', on_delete=models.CASCADE)
     student = models.ForeignKey('Student', on_delete=models.CASCADE)
@@ -226,12 +209,22 @@ class Course(models.Model):
         return self.name
 
 class Schedule(models.Model):
+    CLASS_CHOICES = [
+        ('ON_CAMPUS', 'On Campus'),
+        ('ONLINE', 'Online'),
+        ('LAB', 'Laboratory'),
+        ('TUTORIAL', 'Tutorial')
+    ]
+
     schedule_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name="schedules")
     date = models.DateField()
     time = models.TimeField()
-    type = models.CharField(max_length=50)
+    type = models.CharField(max_length=50, choices=CLASS_CHOICES, default='ON_CAMPUS')
     room = models.ForeignKey('Room', on_delete=models.SET_NULL, null=True, blank=True, related_name="schedules")
+
+    class Meta:
+        ordering = ['date', 'time']  # Add ordering
 
     def __str__(self):
         return f"Schedule for {self.course.name} on {self.date} at {self.time}"
@@ -262,32 +255,6 @@ class Attendance(models.Model):
     def __str__(self):
         return f"{self.student.name} - {self.course.name} - {self.schedule.date if self.schedule else 'No Schedule'}"
 
-    def calculate_attendance_percent(self):
-        """Calculate attendance percentage for this student in this course"""
-        total_schedules = Schedule.objects.filter(course=self.course).count()
-        if total_schedules > 0:
-            attended_classes = Attendance.objects.filter(
-                student=self.student,
-                course=self.course,
-                is_present=True
-            ).count()
-            self.attendance_percent = round((attended_classes / total_schedules) * 100, 2)
-            self.save()
-        return self.attendance_percent
-
-    @classmethod
-    def get_course_attendance(cls, student, course):
-        """Get attendance percentage for a specific student and course"""
-        total_schedules = Schedule.objects.filter(course=course).count()
-        if total_schedules > 0:
-            attended_classes = cls.objects.filter(
-                student=student,
-                course=course,
-                is_present=True
-            ).count()
-            return round((attended_classes / total_schedules) * 100, 2)
-        return 0.0
-
 class Enrollment(models.Model):
     enrollment_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="enrollments")
@@ -301,7 +268,6 @@ class Enrollment(models.Model):
 prefix_mapping = {
     'Student': 'STU',
     'Professor': 'PRO',
-    'Staff': 'STA',
     'Library': 'LIB',
     'Room': 'ROM',
     'Department': 'DEP',
@@ -316,7 +282,7 @@ prefix_mapping = {
 
 # List of models with auto-generated IDs
 models_with_auto_id = [
-    Student, Professor, Staff, Library, Room, Department, Course,
+    Student, Professor, Library, Room, Department, Course,
     Schedule, Assignment, Attendance, Enrollment, CourseMaterial, AssignmentSubmission
 ]
 

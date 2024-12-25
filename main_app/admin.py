@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Student, Professor, Staff, Course, Library, Schedule,
+    Student, Professor, Course, Library, Schedule,
     Assignment, AssignmentSubmission, Room, Department, Attendance,
     Enrollment, CourseMaterial, BookLending
 )
@@ -36,13 +36,6 @@ class ProfessorAdmin(admin.ModelAdmin):
     def get_courses(self, obj):
         return ", ".join([course.name for course in obj.courses.all()])
     get_courses.short_description = 'Courses'
-
-@admin.register(Staff)
-class StaffAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'staff_id', 'position', 'department')
-    search_fields = ('name', 'email', 'staff_id', 'position')
-    list_filter = ('department',)
-    exclude = ('staff_id',)
 
 @admin.register(Library)
 class LibraryAdmin(admin.ModelAdmin):
