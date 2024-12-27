@@ -53,9 +53,12 @@
                                 {% if material.material_id %}  
                                 <a href="{% url 'update_course_material' professor.professor_id course.course_id material.material_id %}" 
                                    class="btn btn-sm btn-warning">Edit</a>
-                                <a href="{% url 'delete_course_material' professor.professor_id course.course_id material.material_id %}" 
-                                   class="btn btn-sm btn-danger"
-                                   onclick="return confirm('Are you sure you want to delete this material?')">Delete</a>
+                                <button class="btn btn-sm btn-danger delete-btn" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#confirmDeleteModal"
+                                        data-delete-url="{% url 'delete_course_material' professor.professor_id course.course_id material.material_id %}">
+                                    Delete
+                                </button>
                                 {% endif %}
                             </div>
                         </div>
@@ -69,4 +72,40 @@
         </div>
     </div>
 </div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this material?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+    const deleteForm = document.getElementById('deleteForm');
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const deleteUrl = this.getAttribute('data-delete-url');
+            deleteForm.action = deleteUrl;
+        });
+    });
+});
+</script>
 {% endblock %}
