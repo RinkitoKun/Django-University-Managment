@@ -20,17 +20,6 @@ class Person(AbstractBaseUser):
     class Meta:
         abstract = True
 
-    def login(self, email, password):
-        return True if self.email == email and self.password == password else False
-
-    def logout(self):
-        return "Logged Out"
-
-    def edit_profile(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-        self.save()
-
 # Models
 class Student(Person):
     student_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
@@ -42,55 +31,11 @@ class Student(Person):
     def __str__(self):
         return self.name
     
-    def check_assignments(self):
-        return Assignment.objects.filter(course__in=self.enrolled_courses.all())
-
-    def view_schedule(self):
-        return Schedule.objects.filter(course__in=self.enrolled_courses.all())
-
-    def view_attendance(self):
-        return Attendance.objects.filter(student=self)
-
-    def get_borrowed_books(self):
-        return Library.objects.filter(booklending__student=self, booklending__return_date__isnull=True)
-
 class Professor(Person):
     professor_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     department = models.ForeignKey('Department', on_delete=models.CASCADE, related_name="professors")
     courses = models.ManyToManyField('Course', related_name="professors", blank=True)
     specialization = models.CharField(max_length=100)
-
-    def check_assignments(self):
-        return Assignment.objects.filter(course=self.course)
-
-    def give_marks(self, assignment, marks):
-        assignment.grade = marks
-        assignment.save()
-    
-    def upload_course_material(self, title, file, course):
-        """Upload course material for a specific course"""
-        return CourseMaterial.objects.create(
-            title=title,
-            file=file,
-            course=course
-        )
-
-    def mark_attendance(self, student, course, attendance_percent):
-        """Mark attendance for a student in a course"""
-        attendance, created = Attendance.objects.get_or_create(
-            student=student,
-            course=course,
-            defaults={'attendance_percent': attendance_percent}
-        )
-        if not created:
-            attendance.attendance_percent = attendance_percent
-            attendance.save()
-        return attendance
-
-    def grade_assignment(self, submission, grade):
-        """Grade a student's assignment submission"""
-        submission.grade = grade
-        submission.save()
 
 class BookLending(models.Model):
     book = models.ForeignKey('Library', on_delete=models.CASCADE)
@@ -106,11 +51,41 @@ class Library(models.Model):
         ('AVAILABLE', 'Available'),
         ('BORROWED', 'Borrowed'),
     ]
+
+    CATEGORY_CHOICES = [
+        ('FICTION', 'Fiction'),
+        ('NON_FICTION', 'Non-Fiction'),
+        ('SCIENCE', 'Science'),
+        ('HISTORY', 'History'),
+        ('MATH', 'Mathematics'),
+        ('BIOLOGY', 'Biology'),
+        ('PHYSICS', 'Physics'),
+        ('CHEMISTRY', 'Chemistry'),
+        ('ENGINEERING', 'Engineering'),
+        ('MEDICINE', 'Medicine'),
+        ('BUSINESS', 'Business'),
+        ('LITERATURE', 'Literature'),
+        ('PHILOSOPHY', 'Philosophy'),
+        ('PSYCHOLOGY', 'Psychology'),
+        ('SOCIOLOGY', 'Sociology'),
+        ('POLITICAL_SCIENCE', 'Political Science'),
+        ('ECONOMICS', 'Economics'),
+        ('ART', 'Art'),
+        ('MUSIC', 'Music'),
+        ('SPORTS', 'Sports'),
+        ('NOVEL', 'Novel'),
+        ('SCIENCE_FICTION', 'Science Fiction'),
+        ('THRILLER', 'Thriller'),
+        ('PERSONAL_DEVELOPMENT', 'Personal Development'),
+        ('COMPUTER_TECHNOLOGY', 'Computer Technology'),
+        ('COMPUTER_SCIENCE', 'Computer Science'),
+        ('OTHER', 'Other'),
+    ]
     
     book_id = models.CharField(max_length=20, primary_key=True, unique=True, editable=False)
     book_name = models.CharField(max_length=255)
     book_description = models.TextField(null=True)
-    category = models.CharField(max_length=100)
+    category = models.CharField(max_length=100, choices=CATEGORY_CHOICES, default='OTHER')
     quantity = models.PositiveIntegerField()
     book_cover = models.ImageField(upload_to='book_covers/', blank=True, null=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='AVAILABLE')
@@ -123,31 +98,6 @@ class Library(models.Model):
     def __str__(self):
         return self.book_name
 
-    def borrow_book(self, student):
-        if self.quantity > 0:
-            BookLending.objects.create(book=self, student=student)
-            self.quantity -= 1
-            if self.quantity == 0:
-                self.status = 'BORROWED'
-            self.save()
-            return True
-        return False
-
-    def return_book(self, student):
-        lending = BookLending.objects.filter(
-            book=self,
-            student=student,
-            return_date__isnull=True
-        ).first()
-        if lending:
-            lending.return_date = timezone.now()
-            lending.save()
-            self.quantity += 1
-            self.status = 'AVAILABLE'
-            self.save()
-            return True
-        return False
-
 class CourseMaterial(models.Model):
     material_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     title = models.CharField(max_length=255)
@@ -158,13 +108,6 @@ class CourseMaterial(models.Model):
     def __str__(self):
         return f"{self.title} - {self.course.name}"
 
-    def save(self, *args, **kwargs):
-        if not self.material_id:
-            prefix = 'MAT'
-            max_id = CourseMaterial.objects.count() + 1
-            self.material_id = f"{prefix}{max_id:05d}"
-        super().save(*args, **kwargs)
-
 class AssignmentSubmission(models.Model):
     submission_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     assignment = models.ForeignKey('Assignment', on_delete=models.CASCADE, related_name="submissions")
@@ -173,27 +116,11 @@ class AssignmentSubmission(models.Model):
     grade = models.CharField(max_length=5, null=True, blank=True, default="Not Graded")
     submission_date = models.DateTimeField(auto_now_add=True)
 
-    def save(self, *args, **kwargs):
-        if not self.submission_id:
-            prefix = 'SUB'
-            max_id = AssignmentSubmission.objects.count() + 1
-            self.submission_id = f"{prefix}{max_id:05d}"
-        super().save(*args, **kwargs)
 
 class Room(models.Model):
     room_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     room_type = models.CharField(max_length=100)
     department = models.ForeignKey('Department', on_delete=models.CASCADE, related_name="rooms")
-
-class GradingQueue:
-    def __init__(self):
-        self.queue = []
-
-    def enqueue(self, submission):
-        self.queue.append(submission)
-
-    def dequeue(self):
-        return self.queue.pop(0) if self.queue else None
 
 class Department(models.Model):
     department_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
@@ -263,6 +190,27 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f"{self.student.name} - {self.course.name}"
+
+class Announcement(models.Model):
+    PRIORITY_CHOICES = [
+        (1, "High"),
+        (2, "Medium"),
+        (3, "Low"),
+    ]
+
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    priority = models.IntegerField(choices=PRIORITY_CHOICES, default=3)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class Meta:
+    ordering = ['priority', '-created_at']  # Sort by priority (ascending) and then by creation date (descending)
+
+def __str__(self):
+    return f"{self.title} (Priority: {self.get_priority_display()})"
+
+
+
 
 # Define the prefix mapping
 prefix_mapping = {

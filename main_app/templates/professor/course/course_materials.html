@@ -50,7 +50,7 @@
                             <h5 class="mb-1">{{ material.title }}</h5>
                             <div class="btn-group">
                                 <a href="{{ material.file.url }}" class="btn btn-sm btn-info" target="_blank">View</a>
-                                {% if material.material_id %}  <!-- Only show edit/delete if material_id exists -->
+                                {% if material.material_id %}  
                                 <a href="{% url 'update_course_material' professor.professor_id course.course_id material.material_id %}" 
                                    class="btn btn-sm btn-warning">Edit</a>
                                 <a href="{% url 'delete_course_material' professor.professor_id course.course_id material.material_id %}" 

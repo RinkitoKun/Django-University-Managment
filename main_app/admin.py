@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     Student, Professor, Course, Library, Schedule,
     Assignment, AssignmentSubmission, Room, Department, Attendance,
-    Enrollment, CourseMaterial, BookLending
+    Enrollment, CourseMaterial, BookLending, Announcement
 )
 
 class EnrollmentInline(admin.TabularInline):
@@ -15,26 +15,32 @@ class ProfessorCoursesInline(admin.TabularInline):
     verbose_name = "Course"
     verbose_name_plural = "Courses"
 
+# Remove redundant inline classes and combine common attributes
+class BaseModelAdmin(admin.ModelAdmin):
+    def get_list_items(self, obj, attribute, separator=", "):
+        items = getattr(obj, attribute).all()
+        return separator.join(str(item) for item in items)
+
 # Admin Configuration
 @admin.register(Student)
-class StudentAdmin(admin.ModelAdmin):
+class StudentAdmin(BaseModelAdmin):
     list_display = ('name', 'email', 'student_id', 'get_enrolled_courses')
     search_fields = ('name', 'email', 'student_id')
     inlines = [EnrollmentInline]
 
     def get_enrolled_courses(self, obj):
-        return ", ".join(course.name for course in obj.enrolled_courses.all())
+        return self.get_list_items(obj, 'enrolled_courses')
     get_enrolled_courses.short_description = 'Enrolled Courses'
 
 @admin.register(Professor)
-class ProfessorAdmin(admin.ModelAdmin):
+class ProfessorAdmin(BaseModelAdmin):
     list_display = ('name', 'email', 'professor_id', 'department', 'get_courses')
     search_fields = ('name', 'email', 'professor_id')
     exclude = ('staff_id', 'student_id', 'courses')  # Exclude courses field since we're using inline
     inlines = [ProfessorCoursesInline]
 
     def get_courses(self, obj):
-        return ", ".join([course.name for course in obj.courses.all()])
+        return self.get_list_items(obj, 'courses')
     get_courses.short_description = 'Courses'
 
 @admin.register(Library)
@@ -64,12 +70,12 @@ class DepartmentAdmin(admin.ModelAdmin):
     exclude = ('department_id',)
 
 @admin.register(Course)
-class CourseAdmin(admin.ModelAdmin):
+class CourseAdmin(BaseModelAdmin):
     list_display = ('course_id', 'name', 'get_professors')
     search_fields = ('course_id', 'name')
 
     def get_professors(self, obj):
-        return ", ".join([prof.name for prof in obj.professors.all()])
+        return self.get_list_items(obj, 'professors')
     get_professors.short_description = 'Professors'
 
 @admin.register(Schedule)
@@ -108,3 +114,9 @@ class CourseMaterialAdmin(admin.ModelAdmin):
     list_display = ('material_id', 'title', 'course', 'upload_date')
     search_fields = ('title', 'course__name')
     list_filter = ('course', 'upload_date')
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = ('title', 'priority', 'created_at')
+    list_filter = ('priority', 'created_at')
+    search_fields = ('title', 'content')

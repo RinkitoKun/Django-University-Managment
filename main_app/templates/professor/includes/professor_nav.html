@@ -1,0 +1,8 @@
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'professor_dashboard' professor.professor_id %}">Dashboard</a>
+</li>
+{% if course %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'professor_course_detail' professor.professor_id course.course_id %}">Course Details</a>
+</li>
+{% endif %}

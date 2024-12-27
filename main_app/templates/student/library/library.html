@@ -11,7 +11,11 @@
 <li class="nav-item">
     <a class="nav-link active" href="{% url 'library' student_id=student.student_id %}">Library</a>
 </li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'announcements' student_id=student.student_id %}">Announcements</a>
+</li>
 {% endblock %}
+
 
 {% block sidebar %}
 <nav class="col-md-3 col-lg-2 d-md-block sidebar">
@@ -45,6 +49,12 @@
     <h2 class="mb-4">Library</h2>
 
     <div class="row">
+        <form class="d-flex mb-3 col-6" method="GET" action="{% url 'book_search' student_id=student.student_id%}">
+            {%csrf_token%}
+            <input type="text" name="q" placeholder="Search by title" value="{{ query|default:'' }}" class="form-control me-2">
+            <button type="submit" class="btn btn-outline-primary">Search</button>
+        </form>
+
         <!-- Available Books -->
         <div class="col-12 mb-4">
             <div class="card">
@@ -52,38 +62,40 @@
                     <h5 class="card-title mb-0">Available Books</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                        {% for book in books %}
-                        <div class="col">
-                            <div class="card h-100">
-                                {% if book.book_cover %}
-                                    <img src="{{ book.book_cover.url }}" class="card-img-top" alt="{{ book.book_name }}" style="height: 200px; object-fit: cover;">
-                                {% else %}
-                                    <img src="{% static 'images/default_cover.jpg' %}" class="card-img-top" alt="Default Cover" style="height: 200px; object-fit: cover;">
-                                {% endif %}
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ book.book_name }}</h5>
-                                    <p class="card-text"><small class="text-muted">Category: {{ book.category }}</small></p>
-                                    <p class="card-text">{{ book.book_description|truncatechars:80 }}</p>
-                                    <p class="card-text"><small class="text-muted">Available: {{ book.quantity }}</small></p>
-                                </div>
-                                <div class="card-footer bg-transparent">
-                                    {% if book.quantity > 0 %}
-                                    <form method="POST" action="{% url 'borrow_book' student_id=student.student_id book_id=book.book_id %}">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-primary w-100">Borrow Now</button>
-                                    </form>
+                    <div class="books-container" style="height: 600px; overflow-y: auto; overflow-x: hidden;">
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                            {% for book in books %}
+                            <div class="col">
+                                <div class="card h-100">
+                                    {% if book.book_cover %}
+                                        <img src="{{ book.book_cover.url }}" class="card-img-top" alt="{{ book.book_name }}" style="height: 200px; object-fit: cover;">
                                     {% else %}
-                                    <button class="btn btn-secondary w-100" disabled>Out of Stock</button>
+                                        <img src="{% static 'images/default_cover.jpg' %}" class="card-img-top" alt="Default Cover" style="height: 200px; object-fit: cover;">
                                     {% endif %}
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ book.book_name }}</h5>
+                                        <p class="card-text"><small class="text-muted">Category: {{ book.category }}</small></p>
+                                        <p class="card-text">{{ book.book_description|truncatechars:80 }}</p>
+                                        <p class="card-text"><small class="text-muted">Available: {{ book.quantity }}</small></p>
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        {% if book.quantity > 0 %}
+                                        <form method="POST" action="{% url 'borrow_book' student_id=student.student_id book_id=book.book_id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-primary w-100">Borrow Now</button>
+                                        </form>
+                                        {% else %}
+                                        <button class="btn btn-secondary w-100" disabled>Out of Stock</button>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
+                            {% empty %}
+                            <div class="col-12">
+                                <p class="text-muted text-center">No books available at the moment.</p>
+                            </div>
+                            {% endfor %}
                         </div>
-                        {% empty %}
-                        <div class="col-12">
-                            <p class="text-muted text-center">No books available at the moment.</p>
-                        </div>
-                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -96,34 +108,36 @@
                     <h5 class="card-title mb-0">Currently Borrowed</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                        {% for lending in student.booklending_set.all %}
-                            {% if not lending.return_date %}
-                            <div class="col">
-                                <div class="card h-100">
-                                    {% if lending.book.book_cover %}
-                                        <img src="{{ lending.book.book_cover.url }}" class="card-img-top" alt="{{ lending.book.book_name }}" style="height: 200px; object-fit: cover;">
-                                    {% else %}
-                                        <img src="{% static 'images/default_cover.jpg' %}" class="card-img-top" alt="Default Cover" style="height: 200px; object-fit: cover;">
-                                    {% endif %}
-                                    <div class="card-body">
-                                        <h5 class="card-title">{{ lending.book.book_name }}</h5>
-                                        <p class="card-text"><small class="text-muted">Borrowed: {{ lending.borrow_date|date:"F d, Y" }}</small></p>
-                                    </div>
-                                    <div class="card-footer bg-transparent">
-                                        <form method="POST" action="{% url 'return_book' student_id=student.student_id book_id=lending.book.book_id %}">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger w-100">Return Book</button>
-                                        </form>
+                    <div class="books-container" style="height: 600px; overflow-y: auto; overflow-x: hidden;">
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-2">
+                            {% for lending in student.booklending_set.all %}
+                                {% if not lending.return_date %}
+                                <div class="col">
+                                    <div class="card h-100">
+                                        {% if lending.book.book_cover %}
+                                            <img src="{{ lending.book.book_cover.url }}" class="card-img-top" alt="{{ lending.book.book_name }}" style="height: 200px; object-fit: cover;">
+                                        {% else %}
+                                            <img src="{% static 'images/default_cover.jpg' %}" class="card-img-top" alt="Default Cover" style="height: 200px; object-fit: cover;">
+                                        {% endif %}
+                                        <div class="card-body">
+                                            <h5 class="card-title">{{ lending.book.book_name }}</h5>
+                                            <p class="card-text"><small class="text-muted">Borrowed: {{ lending.borrow_date|date:"F d, Y" }}</small></p>
+                                        </div>
+                                        <div class="card-footer bg-transparent">
+                                            <form method="POST" action="{% url 'return_book' student_id=student.student_id book_id=lending.book.book_id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger w-100">Return Book</button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
+                                {% endif %}
+                            {% empty %}
+                            <div class="col-12">
+                                <p class="text-muted text-center">No books currently borrowed.</p>
                             </div>
-                            {% endif %}
-                        {% empty %}
-                        <div class="col-12">
-                            <p class="text-muted text-center">No books currently borrowed.</p>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
                     </div>
                 </div>
             </div>

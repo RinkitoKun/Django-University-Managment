@@ -2,37 +2,29 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Login
+    # Authentication
     path('', views.login_view, name='login'),
-    
-    # Logout
     path('logout/', views.logout_view, name='logout'),
 
-    # Student Dashboard
+    #Student Announcement
+     path('student/<str:student_id>/announcements/', views.announcements_view, name='announcements'),
+
+    # Student Routes
     path('student/<str:student_id>/', views.student_dashboard, name='student_dashboard'),
-
-    # Professor Dashboard
-    path('professor/<str:professor_id>/', views.professor_dashboard, name='professor_dashboard'),
-
-    # Library Views
-    path('student/<str:student_id>/library/', views.library_view, name='library'),
+    path('student/<str:student_id>/library/books/', views.book_search_view, name='book_search'),
+    path('student/<str:student_id>/library/', views.library, name='library'),
     path('student/<str:student_id>/library/borrow/<str:book_id>/', views.borrow_book, name='borrow_book'),
     path('student/<str:student_id>/library/return/<str:book_id>/', views.return_book, name='return_book'),
-
-    # Course Details
     path('student/<str:student_id>/course/<str:course_id>/', views.course_detail, name='course_detail'),
-    path('student/<str:student_id>/course/<str:course_id>/materials/', views.course_materials, name='course_materials'),
-    path('student/<str:student_id>/course/<str:course_id>/schedule/', views.course_schedule, name='course_schedule'),
-
-    # Assignment Details
-    path('student/<str:student_id>/course/<str:course_id>/assignment/<str:assignment_id>/', 
-         views.assignment_detail, name='assignment_detail'),
     path('student/<str:student_id>/course/<str:course_id>/assignment/<str:assignment_id>/submit/', 
          views.submit_assignment, name='submit_assignment'),
 
-    # Professor Course Management
+    # Professor Routes
+    path('professor/<str:professor_id>/', views.professor_dashboard, name='professor_dashboard'),
     path('professor/<str:professor_id>/course/<str:course_id>/', 
          views.professor_course_detail, name='professor_course_detail'),
+    
+    # Course Material Management
     path('professor/<str:professor_id>/course/<str:course_id>/materials/', 
          views.course_materials_manage, name='course_materials_manage'),
     path('professor/<str:professor_id>/course/<str:course_id>/materials/<str:material_id>/delete/', 
@@ -47,20 +39,19 @@ urlpatterns = [
          views.add_assignment, name='add_assignment'),
     path('professor/<str:professor_id>/course/<str:course_id>/assignments/<str:assignment_id>/delete/', 
          views.delete_assignment, name='delete_assignment'),
-    path('professor/<str:professor_id>/course/<str:course_id>/assignments/<str:assignment_id>/grade/', 
-         views.grade_submissions, name='grade_submissions'),
     path('professor/<str:professor_id>/course/<str:course_id>/assignments/<str:assignment_id>/update/', 
          views.update_assignment, name='update_assignment'),
-    path('professor/<str:professor_id>/course/<str:course_id>/assignments/<str:assignment_id>/save-grades/', 
-         views.save_grades, name='save_grades'),
-    path('professor/<int:professor_id>/course/<int:course_id>/assignments/manage/', 
-         views.manage_assignments, name='manage_assignments'),
+    path('professor/<str:professor_id>/course/<str:course_id>/assignments/<str:assignment_id>/grades/', 
+         views.save_grades, name='save_grades'),  # Updated URL pattern for grading
 
     # Attendance Management
-    path('professor/<str:professor_id>/course/<str:course_id>/attendance/<str:schedule_id>/', 
-         views.mark_attendance, name='mark_attendance'),
     path('professor/<str:professor_id>/course/<str:course_id>/attendance/', 
          views.manage_attendance, name='manage_attendance'),
-    path('professor/<str:professor_id>/course/<str:course_id>/attendance/add/', 
-         views.add_schedule, name='add_schedule'),
+    path('professor/<str:professor_id>/course/<str:course_id>/attendance/<str:schedule_id>/', 
+         views.mark_attendance, name='mark_attendance'),
+
+      #Password Reset
+     path('password_reset/', views.password_reset_request, name='password_reset_request'),
+     path('password_reset_form/professor/<str:professor_id>', views.password_reset_form, name='password_reset_form'),
+     path('password_reset_form/student/<str:student_id>', views.password_reset_form, name='password_reset_form'),
 ]

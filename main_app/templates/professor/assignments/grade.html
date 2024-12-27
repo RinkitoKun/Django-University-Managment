@@ -1,5 +1,13 @@
 {% extends 'base.html' %}
 
+{% block navigation %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'professor_dashboard' professor.professor_id %}">Dashboard</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'professor_course_detail' professor.professor_id course.course_id %}">Course Details</a>
+</li>
+{% endblock %}
 {% block title %}Grade Submissions - {{ assignment.title }}{% endblock %}
 
 {% block content %}

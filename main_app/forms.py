@@ -15,3 +15,7 @@ class BookUploadForm(forms.ModelForm):
     class Meta:
         model = Library
         fields = ['book_name', 'book_description', 'category', 'quantity', 'book_cover']
+
+
+class PasswordResetForm(forms.Form):
+    email = forms.EmailField(label="Email", max_length=254)

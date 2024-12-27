@@ -1,0 +1,74 @@
+{% extends 'base.html' %} {% load static %} {% block title %}Library{% endblock %} {% block navigation %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'student_dashboard' student_id=student.student_id %}">Dashboard</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link " href="{% url 'library' student_id=student.student_id %}">Library</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link active" href="{% url 'announcements' student_id=student.student_id %}">Announcements</a>
+</li>
+{% endblock %} {% block sidebar %}
+
+<style>
+    ul {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    
+    ul.ms-2 {
+        margin-left: 0 !important;
+    }
+</style>
+
+<nav class="col-md-3 col-lg-2 d-md-block sidebar">
+    <div class="position-sticky pt-3">
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+            <span>Student Information</span>
+        </h6>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <span class="nav-link">
+                    <strong>Name:</strong> {{ student.name }}
+                </span>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link">
+                    <strong>Email:</strong> {{ student.email }}
+                </span>
+            </li>
+            <li class="nav-item">
+                <span class="nav-link">
+                    <strong>Phone:</strong> {{ student.phone_number }}
+                </span>
+            </li>
+        </ul>
+    </div>
+</nav>
+{% endblock %} {% block content %}
+<div class="container">
+    <h2 class="mb-4">Announcements</h2>
+
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-1 g-4">
+                        <ul class="ms-2">
+                            {% for announcement in announcements %}
+                            <li>
+                                <h2>{{ announcement.title }}</h2>
+                                <p>{{ announcement.content }}</p>
+
+                                <p>Posted on: {{ announcement.created_at|date:"Y-m-d H:i" }}</p>
+                            </li>
+                            <hr> {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{%endblock%}

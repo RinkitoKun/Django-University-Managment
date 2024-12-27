@@ -1,5 +1,14 @@
 {% extends 'base.html' %}
 
+{% block navigation %}
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'professor_dashboard' professor.professor_id %}">Dashboard</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'professor_course_detail' professor.professor_id course.course_id %}">Course Details</a>
+</li>
+{% endblock %}
+
 {% block title %}Manage Assignments - {{ course.name }}{% endblock %}
 
 {% block content %}
@@ -28,7 +37,7 @@
                                 <td>{{ assignment.title }}</td>
                                 <td>{{ assignment.due_date|date:"F j, Y" }}</td>
                                 <td>
-                                    <a href="{% url 'grade_submissions' professor.professor_id course.course_id assignment.assignment_id %}" 
+                                    <a href="{% url 'save_grades' professor.professor_id course.course_id assignment.assignment_id %}" 
                                        class="btn btn-sm btn-primary">Grade Submissions</a>
                                     <button class="btn btn-sm btn-warning" 
                                             data-bs-toggle="modal" 
