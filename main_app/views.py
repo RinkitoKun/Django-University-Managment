@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse
 from datetime import datetime
+from django.db import models
 
 from .models import (
     Student, Professor, Course, Library, Schedule,
@@ -30,7 +31,7 @@ def password_reset_request(request):
                     # Redirect to the password reset form
                     return redirect('password_reset_form', professor_id=professor.professor_id)
                 
-            except User.DoesNotExist:
+            except (Student.DoesNotExist, Professor.DoesNotExist):
                 messages.error(request, "Email does not exist in our records.")
     else:
         form = PasswordResetForm()
