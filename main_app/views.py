@@ -20,19 +20,16 @@ def password_reset_request(request):
         form = PasswordResetForm(request.POST)
         if form.is_valid():
             email = form.cleaned_data['email']
-            try:
-                student = Student.objects.filter(email=email).first()
-                if student:
-                # Redirect to the password reset form
-                    return redirect('password_reset_form', student_id=student.student_id)
-                
-                professor = Professor.objects.filter(email=email).first()
-                if professor:
-                    # Redirect to the password reset form
-                    return redirect('password_reset_form', professor_id=professor.professor_id)
-                
-            except (Student.DoesNotExist, Professor.DoesNotExist):
+            student = Student.objects.filter(email=email).first()
+            professor = Professor.objects.filter(email=email).first()
+            
+            if student:
+                return redirect('password_reset_form', student_id=student.student_id)
+            elif professor:
+                return redirect('password_reset_form', professor_id=professor.professor_id)
+            else:
                 messages.error(request, "Email does not exist in our records.")
+                return render(request, 'password_reset_request.html', {'form': form})
     else:
         form = PasswordResetForm()
     return render(request, 'password_reset_request.html', {'form': form})

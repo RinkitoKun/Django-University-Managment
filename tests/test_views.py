@@ -203,3 +203,28 @@ class TestAnnouncementViews:
         assert response.status_code == 200
         assert 'student/announcement/announcements.html' in [t.name for t in response.templates]
         assert announcement in response.context['announcements']
+
+@pytest.mark.django_db
+class TestPasswordResetViews:
+    def test_password_reset_request_invalid_email(self, client):
+        response = client.post(reverse('password_reset_request'), {
+            'email': 'nonexistent@example.com'
+        })
+        assert response.status_code == 200
+        messages = list(response.context['messages'])
+        assert len(messages) == 1
+        assert str(messages[0]) == "Email does not exist in our records."
+
+    def test_password_reset_request_valid_student_email(self, client, student):
+        response = client.post(reverse('password_reset_request'), {
+            'email': student.email
+        })
+        assert response.status_code == 302
+        assert response.url == reverse('password_reset_form', args=[student.student_id])
+
+    def test_password_reset_request_valid_professor_email(self, client, professor):
+        response = client.post(reverse('password_reset_request'), {
+            'email': professor.email
+        })
+        assert response.status_code == 302
+        assert response.url == reverse('password_reset_form', args=[professor.professor_id])
