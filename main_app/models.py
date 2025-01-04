@@ -3,12 +3,17 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 # Base abstract model
+def validate_password(value):
+    if len(value) < 8:
+        raise ValidationError("Password must be at least 8 characters long.")
+
 class Person(AbstractBaseUser):
     name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=255)
+    password = models.CharField(max_length=255, validators=[validate_password])
     phone_number = models.CharField(max_length=15)
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')])
     address = models.TextField()
