@@ -35,14 +35,11 @@ def password_reset_request(request):
     return render(request, 'password_reset_request.html', {'form': form})
 
 #Password Reset Form
-def password_reset_form(request, student_id=None,professor_id=None):
-    if student_id != None:
-        student = Student.objects.get(student_id=student_id)
-        user=student
-            
-    if professor_id != None:
-        professor = Professor.objects.get(professor_id=professor_id)
-        user=professor
+def password_reset_form(request, student_id=None, professor_id=None):
+    if professor_id:
+        user = get_object_or_404(Professor, professor_id=professor_id)
+    else:
+        user = get_object_or_404(Student, student_id=student_id)
         
     if request.method == 'POST':
         new_password = request.POST.get('new_password')

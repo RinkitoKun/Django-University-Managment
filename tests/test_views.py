@@ -227,4 +227,4 @@ class TestPasswordResetViews:
             'email': professor.email
         })
         assert response.status_code == 302
-        assert response.url == reverse('password_reset_form', args=[professor.professor_id])
+        assert response.url == reverse('password_reset_form', kwargs={'professor_id': professor.professor_id})
