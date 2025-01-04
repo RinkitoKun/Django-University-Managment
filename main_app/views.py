@@ -284,57 +284,30 @@ def student_dashboard(request, student_id):
     return render(request, 'student/student_dashboard.html', context)
 
 # Course detail view
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from .models import Course, Student, Assignment, AssignmentSubmission
+
 def course_detail(request, student_id, course_id):
-    student = get_object_or_404(Student, pk=student_id)
-    course = get_object_or_404(Course, pk=course_id)
-    materials = course.materials.all().order_by('-upload_date')
-    assignments = course.assignments.all().order_by('due_date')
-    today = timezone.now().date()
-
-    if request.method == 'POST':
-        assignment_id = request.POST.get('assignment_id')
-        submission_file = request.FILES.get('submission_file')
-        
-        if assignment_id and submission_file:
-            assignment = get_object_or_404(Assignment, assignment_id=assignment_id)
-            
-            # Check if submission already exists
-            existing_submission = AssignmentSubmission.objects.filter(
-                assignment=assignment,
-                student=student
-            ).first()
-            
-            if existing_submission:
-                existing_submission.file.delete()
-                existing_submission.file = submission_file
-                existing_submission.save()
-                messages.success(request, 'Assignment updated successfully!')
-            else:
-                # Create new submission
-                AssignmentSubmission.objects.create(
-                    assignment=assignment,
-                    student=student,
-                    file=submission_file
-                )
-                messages.success(request, 'Assignment submitted successfully!')
-        elif assignment_id and 'delete_submission' in request.POST:
-            assignment = get_object_or_404(Assignment, assignment_id=assignment_id)
-            existing_submission = AssignmentSubmission.objects.filter(
-                assignment=assignment,
-                student=student
-            ).first()
-            if existing_submission:
-                existing_submission.file.delete()
-                existing_submission.delete()
-                messages.success(request, 'Assignment deleted successfully!')
-
-    return render(request, 'student/course/course_detail.html', {
+    student = get_object_or_404(Student, student_id=student_id)
+    course = get_object_or_404(Course, course_id=course_id)
+    
+    # Get course materials
+    materials = course.materials.all()
+    
+    # Get assignments with prefetched submissions
+    assignments = Assignment.objects.filter(course=course).prefetch_related(
+        'submissions'
+    )
+    
+    context = {
         'student': student,
         'course': course,
         'materials': materials,
         'assignments': assignments,
-        'today': today
-    })
+        'today': timezone.now().date(),
+    }
+    return render(request, 'student/course/course_detail.html', context)
 
 # Professor Course Management Views
 def professor_course_detail(request, professor_id, course_id):

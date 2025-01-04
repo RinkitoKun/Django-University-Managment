@@ -72,15 +72,17 @@
                                 {% endif %}
                                 
                                 <div id="submission-info-{{ assignment.assignment_id }}">
-                                    {% if assignment.submissions.all %}
-                                        <div class="alert alert-info submission-info">
-                                            Submitted on: {{ assignment.submissions.first.submission_date|date:"F d, Y" }}
-                                            <br>
-                                            Grade: {{ assignment.submissions.first.grade }}
-                                            <br>
-                                            File: <a href="{{ assignment.submissions.first.file.url }}" target="_blank">{{ assignment.submissions.first.file.name }}</a>
-                                        </div>
-                                    {% endif %}
+                                    {% with student_submission=assignment.submissions.all|dictsort:"submission_date"|last %}
+                                        {% if student_submission and student_submission.student == student %}
+                                            <div class="alert alert-info submission-info">
+                                                Submitted on: {{ student_submission.submission_date|date:"F d, Y" }}
+                                                <br>
+                                                Grade: {{ student_submission.grade }}
+                                                <br>
+                                                File: <a href="{{ student_submission.file.url }}" target="_blank">{{ student_submission.file.name }}</a>
+                                            </div>
+                                        {% endif %}
+                                    {% endwith %}
                                 </div>
                                 
                                 {% if assignment.due_date >= today %}

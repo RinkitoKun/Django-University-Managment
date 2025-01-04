@@ -110,11 +110,16 @@ class CourseMaterial(models.Model):
 class AssignmentSubmission(models.Model):
     submission_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     assignment = models.ForeignKey('Assignment', on_delete=models.CASCADE, related_name="submissions")
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="submissions")
+    student = models.ForeignKey('Student', on_delete=models.CASCADE, related_name="submitted_assignments")
     file = models.FileField(upload_to='assignments/')
     grade = models.CharField(max_length=5, null=True, blank=True, default="Not Graded")
     submission_date = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-submission_date']
+        
+    def __str__(self):
+        return f"{self.student.name}'s submission for {self.assignment.title}"
 
 class Room(models.Model):
     room_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
