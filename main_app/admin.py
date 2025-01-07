@@ -34,10 +34,14 @@ class StudentAdmin(BaseModelAdmin):
 
 @admin.register(Professor)
 class ProfessorAdmin(BaseModelAdmin):
-    list_display = ('name', 'email', 'professor_id', 'department', 'get_courses')
+    list_display = ('name', 'email', 'professor_id', 'get_department', 'get_courses')
     search_fields = ('name', 'email', 'professor_id')
     exclude = ('staff_id', 'student_id', 'courses')  # Exclude courses field since we're using inline
     inlines = [ProfessorCoursesInline]
+
+    def get_department(self, obj):
+        return obj.department.name
+    get_department.short_description = 'Department'
 
     def get_courses(self, obj):
         return self.get_list_items(obj, 'courses')
@@ -58,10 +62,14 @@ class BookLendingAdmin(admin.ModelAdmin):
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ('room_id', 'room_type', 'department')
+    list_display = ('room_id', 'room_type', 'get_department')
     search_fields = ('room_type',)
     list_filter = ('department',)
     exclude = ('room_id',)
+
+    def get_department(self, obj):
+        return obj.department.name
+    get_department.short_description = 'Department'
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
