@@ -36,7 +36,7 @@ class StudentAdmin(BaseModelAdmin):
 class ProfessorAdmin(BaseModelAdmin):
     list_display = ('name', 'email', 'professor_id', 'get_department', 'get_courses')
     search_fields = ('name', 'email', 'professor_id')
-    exclude = ('staff_id', 'student_id', 'courses')  # Exclude courses field since we're using inline
+    exclude = ('staff_id', 'student_id', 'courses')  
     inlines = [ProfessorCoursesInline]
 
     def get_department(self, obj):

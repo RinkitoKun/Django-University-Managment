@@ -34,7 +34,7 @@ def test_admin_registration(model, admin_class):
 
 @pytest.mark.parametrize("model, expected_fields", [
     (Student, ['name', 'email', 'student_id', 'get_enrolled_courses']),
-    (Professor, ['name', 'email', 'professor_id', 'department', 'get_courses']),
+    (Professor, ['name', 'email', 'professor_id', 'get_department', 'get_courses']), 
     (Library, ['book_id', 'book_name', 'category', 'quantity', 'status']),
     (BookLending, ['book', 'student', 'borrow_date', 'return_date']),
 ])
