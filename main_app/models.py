@@ -136,6 +136,9 @@ class Department(models.Model):
     name = models.CharField(max_length=100, unique=True)
     location = models.CharField(max_length=255)
 
+    def __str__(self):
+        return self.name
+
 class Course(models.Model):
     course_id = models.CharField(max_length=20, primary_key=True, unique=True, blank=True, editable=False)
     name = models.CharField(max_length=255)
@@ -160,7 +163,7 @@ class Schedule(models.Model):
     room = models.ForeignKey('Room', on_delete=models.SET_NULL, null=True, blank=True, related_name="schedules")
 
     class Meta:
-        ordering = ['date', 'time']  # Add ordering
+        ordering = ['date', 'time']  
 
     def __str__(self):
         return f"Schedule for {self.course.name} on {self.date} at {self.time}"

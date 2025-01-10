@@ -27,7 +27,7 @@ class StudentAdmin(BaseModelAdmin):
     list_display = ('name', 'email', 'student_id', 'get_enrolled_courses')
     search_fields = ('name', 'email', 'student_id')
     inlines = [EnrollmentInline]
-
+    exclude = ('last_login',)
     def get_enrolled_courses(self, obj):
         return self.get_list_items(obj, 'enrolled_courses')
     get_enrolled_courses.short_description = 'Enrolled Courses'
@@ -36,7 +36,7 @@ class StudentAdmin(BaseModelAdmin):
 class ProfessorAdmin(BaseModelAdmin):
     list_display = ('name', 'email', 'professor_id', 'get_department', 'get_courses')
     search_fields = ('name', 'email', 'professor_id')
-    exclude = ('staff_id', 'student_id', 'courses')  
+    exclude = ('last_login', 'student_id', 'courses')  
     inlines = [ProfessorCoursesInline]
 
     def get_department(self, obj):

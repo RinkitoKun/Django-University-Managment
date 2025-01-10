@@ -137,7 +137,7 @@
                                         <td>{{ schedule.date|date:"D, d M Y" }}</td>
                                         <td>{{ schedule.time|time:"g:i A" }}</td>
                                         <td>{{ schedule.get_type_display }}</td>
-                                        <td>{{ schedule.room|default:"Not Assigned" }}</td>
+                                        <td>{{ schedule.room.room_type|default:"Not Assigned" }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
